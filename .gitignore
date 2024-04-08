@@ -1,0 +1,8 @@
+node_modules
+.wwebjs_auth
+.wwebjs_cache
+.idea
+.vs
+saved-events.json
+.env
+start.sh

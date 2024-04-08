@@ -1,0 +1,24 @@
+{
+  "name": "shabbot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@hebcal/core": "^4.0.3",
+    "chrono-node": "^2.3.2",
+    "date.js": "^0.3.3",
+    "dayjs": "^1.10.7",
+    "fuse.js": "^6.6.2",
+    "puppeteer": "^21.0.2",
+    "qrcode-terminal": "^0.12.0",
+    "typescript": "^4.4.4",
+    "uid": "^2.0.0",
+    "whatsapp-web.js": "^1.23.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
