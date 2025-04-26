@@ -48,28 +48,6 @@ async function response(client,msg,events,attendee,unfilteredEvents,allEvents) {
                     thing.forEach(item => messageContent += item);
                     msg.reply(messageContent);
                 });
-            } else if (prompt.startsWith('daniel')) {
-                    const randInt = Math.floor(Math.random()*5);
-                    var link = '';
-                    switch (randInt) {
-                        case 0:
-                            link = 'https://www.youtube.com/watch?v=vXYVfk7agqU';
-                            break
-                        case 1:
-                            link = 'https://www.youtube.com/watch?v=ETfiUYij5UE';
-                            break
-                        case 2:
-                            link = 'https://www.youtube.com/watch?v=uO8SeXh_LaA';
-                            break
-                        case 3:
-                            link = 'https://www.pornhub.com/view_video.php?viewkey=ph5f3b21528d0d5';
-                            break
-                        case 4:
-                            link = 'https://youtu.be/KhqjlVn9q4Y?t=117'
-                    }
-                    msg.reply(`YOU HAVE AWAKENED THE WRATH OF SATAN\n${link}`);
-            } else if (prompt.startsWith('hodi')) {
-                    msg.reply('lets sing some shabbat songs\nhttps://www.youtube.com/watch?v=EWMPVn1kgIQ');
             } else if (prompt.startsWith('leave')||prompt.startsWith('lv')||prompt.startsWith('uncoming')||prompt.startsWith('uncm')) {
                 let messageContent = ''
                 leave(prompt,events,attendee).forEach(item => messageContent += item);
@@ -83,56 +61,16 @@ async function response(client,msg,events,attendee,unfilteredEvents,allEvents) {
             } else if (prompt.startsWith('location')||prompt.startsWith('loc')) {
                 msg.reply(location(prompt,events))
 
-            } else if (prompt.startsWith('kira')) {
-                msg.reply(`Wait wait Im not ready yet`);
-                setTimeout(() => {client.sendMessage(chat,"gimme one more second");}, 3000);
-                setTimeout(() => {client.sendMessage(chat,"kk now im ready");}, 5000);
-                setTimeout(() => {client.sendMessage(chat,"actually im not sure");}, 6000);
-                setTimeout(() => {client.sendMessage(chat,"nvm its fine");}, 9000);
-                setTimeout(() => {msg.reply("here's the kira command:")},10000);
-                setTimeout(() => {client.sendMessage(chat,"https://flashing-colors.com/")},11000);
-            
             } else if (prompt.startsWith('remove')||prompt.startsWith('rm')){
                 let messageContent = ''
                 remove(prompt,events,attendee,unfilteredEvents).forEach(item => messageContent += item)
                 msg.reply(messageContent);
 
-            } else if (prompt.startsWith('fraydy')) {
-                const randInt = Math.floor(Math.random()*2);
-                let link = 'https://www.youtube.com/watch?v=6Z8jBJ6w_7Q'
-                if (randInt) {
-                    link = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-                }
-                msg.reply(`I didn't know what to put for this one so here's a video of an elephant doing an handstand\n${link}`)
             } else if (prompt.startsWith('settime')) {
                 msg.reply(settime(prompt,events))
-            } else if (prompt.startsWith('gil')) {
-                let link = ['https://www.youtube.com/watch?v=StTqXEQ2l-Y', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ']
-                msg.reply(`everything is awesome!\n${link[Math.floor(Math.random() * 2)]}`)
-            }
-            else if (prompt.startsWith('surprise')) {
-                let link = ['https://www.youtube.com/watch?v=Bw3JHVExpbk&list=PLEYslXW1oN0e3QEWbKDou4Mto-y-4-STg', 'https://www.youtube.com/watch?v=gcm-QBDgnWM&list=PLEYslXW1oN0e3QEWbKDou4Mto-y-4-STg&index=3']
-                msg.reply(`everything is awesome!\n${link[Math.floor(Math.random() * 2)]}`)
-            }
-            else if (prompt.startsWith('count')) {
+            } else if (prompt.startsWith('count')) {
                 let link = 'https://www.chabad.org/holidays/sefirah/omer-count_cdo/jewish/Count-the-Omer.htm'
                 msg.reply(`you forgot that your suppose to count the omer!? ha! no, not tonight\n${link}`)
-            }
-            else if (prompt.startsWith('Amnon')) {
-                const randInt = Math.floor(Math.random() * 2);
-                let link = 'https://www.youtube.com/watch?v=D_IFNaTEXBA'
-                msg.reply(`Shalom Chabibi!\n${link}`)
-            }
-            else if (prompt.startsWith('gabe')) {
-                const randInt = Math.floor(Math.random() * 2);
-                let link = 'https://www.youtube.com/watch?v=oWgTqLCLE8k'
-                msg.reply(`time to party!\n${link}`)
-            } else if (prompt.match(/\boren\b/gi)) {
-                msg.reply(`you found it ${attendee.id}! Make sure your parents aren't around ;)\nhttps://www.pornhub.com/view_video.php?viewkey=ph5f3b21528d0d5`)
-            } else if (prompt.match(/^penis/gi)) {
-                msg.reply(`hahahha nice job heres a gift for your hard work: https://youtu.be/KhqjlVn9q4Y?t=117`)
-            } else if (prompt.match(/\bbessie\b/gi)) {
-                msg.reply('bessie you need this tinyurl.com/tatter-totters')
             } else if (prompt.match(/^(shabbattimes|shabtimes)\b/gi)) {
                 const now = new Date()
                 var date = chrono.parse(prompt, now, {forwardDate: true}).at(0)
@@ -207,7 +145,6 @@ function autoResponseTest() {
     responseTest("remove 1")
     responseTest("shabbatlocation New York")
     responseTest("shabbattimes jerusalem")
-    responseTest("remind me to pee in 3 minutes")
     responseTest('reminders')
 }
 
