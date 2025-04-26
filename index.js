@@ -55,34 +55,6 @@ function record(arr, jsonPath) {
     });
 }
 
-function saltyBot(msg, client, contactname) {
-    const chat = msg.from;
-    const randInt = Math.floor(Math.random() * 5);
-    var offensiveThing = '';
-    switch (randInt) {
-        case 0:
-            offensiveThing = 'sucks maaaaad canine penis';
-            break
-        case 1:
-            offensiveThing = 'has aids';
-            break
-        case 2:
-            offensiveThing = 'hangs out with goyim';
-            break
-        case 3:
-            offensiveThing = 'has a sister who once licked a nazi';
-            break
-        case 4:
-            offensiveThing = 'drinks the pee of local street performers'
-    }
-    if (!msg.body.startsWith('!') && msg.body.match(/\b(dinner|lunch)\b/i)) {
-        msg.reply('oh i see whats going on here')
-        setTimeout(() => { client.sendMessage(chat, "don't mind me continue as if im not even here") }, 3000);
-        setTimeout(() => { client.sendMessage(chat, `just saying, i heard that ${contactname} ${offensiveThing}`) }, 5000);
-
-    }
-}
-
 
 if (fs.existsSync(jsonPath)) {
     try {
@@ -129,14 +101,7 @@ client.on('ready', () => {
 
 //client.initialize();
 let state = []
-const soccerChat = '120363029029121540@g.us'
-const intervalSize = 5;
-//const soccerChat = '972587120601@c.us'
 
-
-if (allEvents[soccerChat] == undefined) {
-    allEvents[soccerChat] = { events: [], teams: [] }
-}
 
 let is_global = false
 client.on('message', async msg => {
