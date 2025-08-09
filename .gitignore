@@ -2,3 +2,4 @@ node_modules/*
 bot_sessions/*
 .env
 saved-events*
+contactsStuff/*

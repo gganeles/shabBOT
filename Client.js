@@ -1,13 +1,12 @@
 import { BaileysClass } from 'bot-wa-baileys';
 import EventEmitter from 'events';
-import { getgroups } from 'process';
 
 
 class Message {
     constructor(baileysMessage, client) {
         this.from = baileysMessage.key.remoteJid;
-        this.body = baileysMessage.message?.conversation || 
-                    baileysMessage.message?.extendedTextMessage?.text || '';
+        this.body = baileysMessage.message?.conversation ||
+            baileysMessage.message?.extendedTextMessage?.text || '';
         this.client = client;
         this.pushName = baileysMessage.pushName || '';
         this.type = baileysMessage.type || 'uu';
@@ -29,17 +28,10 @@ class Client extends EventEmitter {
     constructor() {
         super();
         this.sock = null;
-        this.baileys = new BaileysClass({debug: false});
+        this.baileys = new BaileysClass({ debug: false });
         // Set up event listeners
         this.baileys.on('qr', (qr) => {
-            console.log('QR Code received. Please scan with WhatsApp:');
-            console.log(qr);
             this.emit('qr', qr);
-        });
-
-        this.baileys.on('authenticated', () => {
-            console.log('Authentication successful!');
-            this.emit('authenticated');
         });
 
         this.baileys.on('auth_failure', (error) => {
@@ -49,21 +41,6 @@ class Client extends EventEmitter {
 
         this.baileys.on('ready', () => {
             this.emit('ready');
-        });
-
-        this.baileys.on('connection.update', ({ connection, lastDisconnect }) => {
-            if (connection === 'open') {
-                this.isReady = true;
-                console.log('Connection opened successfully');
-                this.sock = this.baileys.vendor;
-                this.emit('connection_opened');
-            } else if (connection === 'close') {
-                this.isReady = false;
-                if (lastDisconnect?.error?.output?.statusCode === 401) {
-                    this.emit('auth_failure', 'Authentication failed');
-                }
-                console.log('Connection closed, attempting to reconnect...');
-            }
         });
 
         this.baileys.on('message', (message) => {
@@ -77,7 +54,7 @@ class Client extends EventEmitter {
     }
 
     async sendMessage(to, message) {
-        const response = await this.baileys.sendMessage(to,message);
+        const response = await this.baileys.sendMessage(to, message, {options:{}});
         return response;
     }
 

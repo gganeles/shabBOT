@@ -6,6 +6,7 @@ const {Client} = require('./Client.js');
 const responder = require('./messageSenders/ResponseCmd.js')
 const { timeTick } = require('./messageSenders/TimedStuff.js')
 const { timedMsg } = require('./utilitystuff/ScheduledSendandReminders.js')
+const qrcode = require('qrcode-terminal');
 
 const { soccerResponse } = require('./messageSenders/SoccerStuff')
 const jsonPath = './saved-events.json';
@@ -98,15 +99,8 @@ if (fs.existsSync(jsonPath)) {
 
 client.on('qr', (qr) => {
     // NOTE: This event will not be fired if a session is specified.
-    console.log('QR RECEIVED', qr);
+    console.log('QR RECEIVED');
     qrcode.generate(qr, { small: true });
-});
-
-client.on('code', (code)=>{
-	console.log("CODE RECIEVED", code)})
-
-client.on('authenticated', () => {
-    console.log('AUTHENTICATED');
 });
 
 client.on('auth_failure', msg => {
@@ -130,18 +124,40 @@ if (allEvents[soccerChat] == undefined) {
     allEvents[soccerChat] = { events: [], teams: [] }
 }
 
+// for implimenting gabeNames
+// const baileys_store = "./bot_sessions/baileys_store.json"
+// const contactData = JSON.parse(fs.readFileSync(baileys_store + "contacts.json", 'utf8'));
+
+
 let is_global = false
 client.on('message', async msg => {
     try {
         //const contact = await msg.getContact()
         const jid = msg.from;
+        msg;
+        //console.log(msg)
         let phoneNumber = jid.split('@')[0];
-        if (msg.isGroup && msg) {
+        if (msg.isGroup) {
             const group = await client.getGroupMetadata(jid);
-            if (group.participants) {
-                phoneNumber = group.participants.find(participant => participant.id === msg.key.participant).jid.split('@')[0];
+            if (group) {
+                const participant = group.participants.find(participant => participant.id === msg.key.participant);
+                if (participant && participant.number) {
+                    phoneNumber = participant.number.split('@')[0];
+                } else if (participant && participant.id.endsWith('@s.whatsapp.net')) {
+                    phoneNumber = participant.id.split('@')[0];
+                }
             }
         }
+
+
+        // if (contactData.contacts) {
+        //     for (const contact of contactData.contacts) {
+        //         if (contact.id === phoneNumber) {
+        //             phoneNumber = contact.number;
+        //             break;
+        //         }
+        //     }
+        // }
 
         const contactname = msg.pushName;
         let attendee = { id: contactname, number: phoneNumber, guests: 0, food: 'nothing' }
@@ -183,7 +199,7 @@ client.on('message', async msg => {
         }
     } catch (err) {
         console.log(err)
-        msg.reply('uh oh sp! there was an error!')
+//        msg.reply('uh oh sp! there was an error!')
     }
 });
 

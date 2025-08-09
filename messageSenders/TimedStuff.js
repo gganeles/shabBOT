@@ -7,7 +7,7 @@ const jsonPath = '/home/pi/shabbot/saved-events.json';
 
 const eighteen20 = '120363154021870149@g.us'
 const shabbatChat = '120363042348096510@g.us'
-const gabeChat = '972587120601@c.us'
+const gabeChat = '972587120601@s.whatsapp.us'
 const intervalSize = 5;
 const DidYouHearThat = '12169789434-1427562427@g.us'
 
@@ -96,7 +96,7 @@ function sendEventTrigger(now,client,allEvents) {
 }
 
 let tovaBool = false;
-const tovaChat = "972525942650@c.us";
+const tovaChat = "972525942650@s.whatsapp.us";
 let prevTovaTime = 0;
 let tovaInterval = 60*60*1000;
 

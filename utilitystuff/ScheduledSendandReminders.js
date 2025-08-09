@@ -421,7 +421,7 @@ function scheduled(chat,allEvents) {
     for (let idNum in allEvents[chat].timedList) {
         for (let key in allEvents) {
             if (key !== chat && allEvents[key].timedList[idNum]) {
-                messageContent+='\n  "'+allEvents[key].timedList[idNum].message+'" to '+key.replace('@c.us','')
+                messageContent+='\n  "'+allEvents[key].timedList[idNum].message+'" to '+key.replace('@s.whatsapp.us','')
             }
         }
     }
@@ -445,7 +445,7 @@ function schedule(prompt,chat,allEvents) {
             return 'Try rephrasing your date, like "Saturday at 14" or "Tomorrow at 6pm"'
         } else {
             const message = prompt.slice(0,contact.index).trim().replace(new RegExp('(\\sto$)|\\s+'+contact+'|\\sin$','gi'),'')
-           let contactChat = contact+'@c.us' 
+           let contactChat = contact+'@s.whatsapp.us' 
             if (!allEvents[contactChat]) {
                 allEvents[contactChat] = {timedList:{}}
             }
@@ -454,7 +454,7 @@ function schedule(prompt,chat,allEvents) {
             }
             const id = randomUUID();
 
-            allEvents[contactChat]['timedList'][id] = new timedMsg(message,dateObj.date(),contactChat, id,'schedule',chat.replace('@c.us',''))
+            allEvents[contactChat]['timedList'][id] = new timedMsg(message,dateObj.date(),contactChat, id,'schedule',chat.replace('@s.whatsapp.us',''))
             allEvents[chat]['timedList'][id] = new timedMsg('Sent scheduled message to '+contact,dateObj.date(),chat,id,'schedule')
             return 'Ok, I will send "'+message+'" to '+contact+" on"+whichWeek(dateObj.date())+dayjs(dateObj.date()).utc().format(coolDateFormat)
         }

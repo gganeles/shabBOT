@@ -36,15 +36,12 @@ async function response(client, msg, events, attendee, unfilteredEvents, allEven
                     msg.reply(rent(prompt))
                 } else if (prompt.startsWith('new') || prompt.startsWith('n ')) { // new event name on date
                     msg.reply(createEvent(prompt, unfilteredEvents, attendee));
-
                 } else if (prompt.startsWith('rename') || prompt.startsWith('rn')) { // rename bad name|index "Good name"
                     msg.reply(rename(prompt, events));
-
                 } else if (prompt.startsWith('coming') || prompt.startsWith('cm') || prompt.startsWith('join') || prompt.startsWith('jn')) { // coming event name
                     let messageContent = ''
                     coming(prompt, events, attendee).forEach(item => messageContent += item);
                     msg.reply(messageContent);
-
                 } else if (prompt.match(/^docs/gi)) {
                     msg.reply("github.com/gganeles/shabBOT")
                     // } else if (prompt.startsWith('bringing')||prompt.startsWith('br')||prompt.startsWith('bring')) { // the food you are bringing
@@ -82,7 +79,7 @@ async function response(client, msg, events, attendee, unfilteredEvents, allEven
 
                 } else if (prompt.startsWith('help')) {
                     if (prompt.split(' ').length < 2) {
-                        const response = "Allow me to introduce myself!\n\ni am the SHABbot!!\nI can help you with you shabbat meals, as well as other things\nThe way it works\n  Use !new, !join, !bring, !leave, !needs, and !list to make events and keeping track of what everyone's bringing\n  Use !shabtimes to find out when shabbat starts\n  Use !remind to set reminders for yourself";
+                        const response = "Allow me to introduce myself!\n\ni am the SHABbot!!\nI can help you with you shabbat meals, as well as other things\n\nThe way it works:\n\n - Use !quickshab to keep track of what everyone's bringing\n - Use !shabtimes to find out when shabbat starts\n - Use !remind to set reminders for yourself\n\nFor more information, type !docs to see the full documentation";
                         msg.reply(response)
                     }
 
