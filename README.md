@@ -6,22 +6,96 @@ A Whatsapp bot for planning shabbat/potluck meals with your friends, with a few 
 
 ## Features
 
-- Group chat specific events with lists of attendees
+- Group chat based Shabbat Meal Planning
 - Weekly shabbat times from @hebcal
 - Scheduled messages and reminders
-- Dish recording and planning system
-
-
-
 
 ## Usage
 
-Add this whatsapp number to your group chat to get started [+1 (203) 802-5238](https://wa.me/message/RCFUO6SIZTRDO1).
+Add this Whatsapp number to your group chat to get started [+1 (203) 802-5238](https://wa.me/message/RCFUO6SIZTRDO1).
 
-In order to use the bot, you must write messages to a group chat that the Shab-BOT is in. You can also text the Shab-BOT directly.
+In order to use the bot, you must write messages to a Whatsapp chat that the Shab-BOT is in. You can also text the Shab-BOT directly.
 
-Any message that beings with ! will invoke the Shab-BOT.
+Any message that begins with `!` will invoke the Shab-BOT.
 
+
+## Getting started with Quick Shabbat Meals
+
+Text `!quickshab <Number of guests>` to generate a list of the needs for a meal of that size.
+
+People can sign up to bring things by writing `!bring <category>`. If the category doesn't exist, it will be created.
+
+If you want to remove yourself, you can write `!unbring`. 
+
+You can also assign other people to bring things by writing `!assign <person> <category>`. This can also be undone with `!unassign`
+
+Example Usage:
+```
+User:
+    !quickshab 4
+
+Shab-BOT:
+    Main: 
+    Main: 
+    Side: 
+    Wine: 
+    Challah: 
+    Dips: 
+
+    You can sign yourself up by writing !bring [category]
+
+User:
+    !bring main
+
+Shab-BOT:
+    Main: User
+    Main: 
+    Side: 
+    Wine: 
+    Challah: 
+    Dips:
+
+User:
+    !unbring
+
+Shab-BOT:
+    Main: 
+    Main: 
+    Side: 
+    Wine: 
+    Challah: 
+    Dips:
+
+User:
+    !assign friend pasta
+
+Shab-BOT:
+    Main: 
+    Main: 
+    Side: 
+    Wine: 
+    Challah: 
+    Dips: 
+    Pasta: friend
+
+User:
+    !unassign friend
+
+Shab-BOT:
+    Main: 
+    Main: 
+    Side: 
+    Wine: 
+    Challah: 
+    Dips: 
+```
+
+
+## Getting started with Shabbat Times
+
+Text `!shabtimes <optional city name>` to find out when shabbat starts this week. If you do not specify a city, it uses the shabbat location associated with that chat. 
+
+Text `!shablocation <city name>` to change the location of a chat. The default location is Haifa.
 
 
 
@@ -34,26 +108,13 @@ The Shab-BOT uses chronos to parse natural language dates, so feel free to write
 You can list all existing events by writing `!list`.
 
 Once your event has been created, you are automatically added to it as an attendee.
-To join someone elses event, use `!join <event name OR index>`.
+To join someone else's event, use `!join <event name OR index>`.
 
 If you do not specify which event is bring joined, it defaults to the most recently created event. This is true for all commands where an event must be referenced.
-
-You can also let other people know what you are bringing. 
-
-Use `!bringing <event name OR index> <what you are bringing>`. If you are not already an attendee, you are automatically added.
 
 If you are no longer coming to an event, use `!leave <event name OR index>`
 
 This is the basic usage of the events of the bot. For more detailed information about commands, read the docs below.
-
-
-## Getting started with Shabbat Times
-
-Use `!shabtimes <optional city name>` to find out when shabbat starts this week. If you do not specify a city, it uses the  shabbat location associated with that chat. 
-
-Use `!shablocation <city name>` to change the location of a chat. The default location is Haifa.
-
-
 
 
 ## Docs
@@ -75,13 +136,8 @@ Multiple commands may be included in the same message, each seperated by a new l
 - DOES NOT DEFAULT TO MOST RECENTLY CREATED EVENT
 
 `!rename (rn) <optional event name OR index> <new name>`
-- Fairly self explainatory
+- Fairly self explanatory
 - If no event is referenced, the most recently created event is renamed
-
-`!location (loc) <optional event name OR index> <location name>`
-- Sets the location of an event.
-- Replaces the word "my" with your whatsapp name
-- If no event is referenced, defaults to the most recently created event
 
 `!settime <optional event name OR index> <new time>`
 - Uses [chronos](https://github.com/wanasit/chrono)
@@ -101,10 +157,6 @@ Multiple commands may be included in the same message, each seperated by a new l
 
 `!leave (lv, uncoming, uncm) <optional event name OR index>`
 - Remove yourself from the list of attendees of an event.
-- If no event is referenced, the most recently created event is referenced.
-
-`!bringing (bring, br) <optional event name OR index> <what you are bringing>`
-- Records the name of the food that you are bringing, as well as the type of food (parsed by GPT 3.5 Turbo).
 - If no event is referenced, the most recently created event is referenced.
 
 `!needs <optional event name OR index> <optional *{number}>`
