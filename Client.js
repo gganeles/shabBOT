@@ -1,12 +1,20 @@
 import { BaileysClass } from 'bot-wa-baileys';
 import EventEmitter from 'events';
 
+// Helper to consistently extract the textual body from a Baileys message
+function extractBody(baileysMessage) {
+    return (
+        baileysMessage.message?.conversation ||
+        baileysMessage.message?.extendedTextMessage?.text ||
+        ''
+    );
+}
+
 
 class Message {
     constructor(baileysMessage, client) {
         this.from = baileysMessage.key.remoteJid;
-        this.body = baileysMessage.message?.conversation ||
-            baileysMessage.message?.extendedTextMessage?.text || '';
+        this.body = extractBody(baileysMessage);
         this.client = client;
         this.pushName = baileysMessage.pushName || '';
         this.type = baileysMessage.type || 'uu';
@@ -19,7 +27,7 @@ class Message {
     async reply(text) {
         return this.client.baileys.sendMessage(this.from, text, {
             quoted: this.WAMessage,
-            options: {}
+            options: {},
         });
     }
 }
@@ -29,6 +37,7 @@ class Client extends EventEmitter {
         super();
         this.sock = null;
         this.baileys = new BaileysClass({ debug: false });
+
         // Set up event listeners
         this.baileys.on('qr', (qr) => {
             this.emit('qr', qr);
@@ -50,12 +59,10 @@ class Client extends EventEmitter {
                 this.emit('message', messageObj);
             }
         });
-
     }
 
     async sendMessage(to, message) {
-        const response = await this.baileys.sendMessage(to, message, {options:{}});
-        return response;
+        return this.baileys.sendMessage(to, message, { options: {} });
     }
 
     async sendAudio(number, audioUrl) {

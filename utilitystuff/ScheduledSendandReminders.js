@@ -10,6 +10,9 @@ const { randomUUID } = require('crypto');
 dayjs.extend(utc);
 
 
+// ---------- small helpers (no behavior change) ----------
+
+// Write the events object to disk
 function record(arr, jsonPath = '/home/pi/shabbot/saved-events.json') {
     fs.writeFile(jsonPath, JSON.stringify(arr), (err) => {
         if (err) {
@@ -19,18 +22,50 @@ function record(arr, jsonPath = '/home/pi/shabbot/saved-events.json') {
     });
 }
 
+// Normalize/removes date text and common filler like "me to", "in", "at"
+function extractUserMessage(source, dateText = '') {
+    return source
+        .replace(dateText, '')
+        .trim()
+        .replace(/^(me\s(to\s)?)|\s(in|at)$/gi, '')
+        .trim();
+}
+
+// Ensure a chat entry exists with timed/untimed lists
+function ensureChatLists(allEvents, chat) {
+    if (!allEvents[chat]) allEvents[chat] = {};
+    if (!allEvents[chat].timedList) allEvents[chat].timedList = {};
+    if (!allEvents[chat].untimedList) allEvents[chat].untimedList = {};
+    return allEvents[chat];
+}
+
+// Filter and sort reminders by time
+function getSortedReminders(timedList) {
+    return Object.values(timedList ?? {})
+        .filter(x => x.type == "remind")
+        .sort((a, b) => a.time - b.time);
+}
+
+// Format helper used in many user-facing strings
+const coolDateFormat = 'ddd @ h:mm a'
+function formatWeekAndTime(date) {
+    return whichWeek(date) + dayjs(date).format(coolDateFormat)
+}
+
 class timedMsg {
-    constructor(message, time, chat, id, type, snoozable = false) {
+    constructor(message, time, chat, id, type, snoozable = false, lastWentOff = null) {
         this.message = message
         this.time = time
         this.chat = chat
 	    this.id = id
         this.type = type
         this.snoozable = snoozable
+        this.lastWentOff = lastWentOff
     }
 
     send(client,allEvents) {
         if (this.type == 'remind') {
+            this.lastWentOff = new Date()
             client.sendMessage(this.chat,this.toReminderString())
             this.snoozable=true
         } else {
@@ -61,69 +96,18 @@ class timedMsg {
     snooze(date) {
         this.snoozable = false
         this.time = date
-        return "Alarm snoozed until "+whichWeek(date)+dayjs(date).format(coolDateFormat)
+        this.lastWentOff = null;
+        return "Alarm snoozed until " + formatWeekAndTime(date)
     }
 
     done(allEvents) {
         if (this.type=="timeless") {
-        delete allEvents[this.chat].untimedList[this.id.toString()]
+            delete allEvents[this.chat].untimedList[this.id.toString()]
         } else {
-        delete allEvents[this.chat].timedList[this.id.toString()]
+            delete allEvents[this.chat].timedList[this.id.toString()]
         }
-        record(allEvents)
     }
 }
-
-
-// function reminderCMD(prompt, chat, timedList, location) {
-//     try {
-//         if (prompt.split(' ').length === 1) {
-//             return 'command usage: !remind   thing to remind   when';
-//         } else {
-//             prompt = prompt.split(' ').slice(1).join(' ');
-            
-//             // Get "now" in the user's timezone
-//             const userTimezone = cityTimezones.lookupViaCity(location) || 'Asia/Jerusalem'; // Default to Jerusalem if not found
-//             const now = DateTime.now().setZone(userTimezone.at(0).timezone).setZone("utc",{keepLocalTime:true});
-
-//             const zone = DateTime.now().setZone(userTimezone.at(0).timezone)
-//             // Parse the time (chrono still expects a JS Date, so convert)
-//             console.log('now:', now.toJSDate().toString())
-//             const strippedNow = new Date(now.toJSDate().getTime() - (now.toJSDate().getTimezoneOffset() * 60000));
-//             console.log('stripped now:', strippedNow.toString())
-//             const dateObj = chrono.parse(prompt, {instant: strippedNow}, {forwardDate: true}).at(0);
-
-//             console.log(dateObj.date().toString())
-//             // Check if the dateObj is valid and in the future          
-//             if (!dateObj || DateTime.fromJSDate(dateObj.date(),  {zone: userTimezone.at(0).timezone}).toMillis() < now.toMillis()) {
-//                 return 'Try rephrasing your date, like "Saturday at 14" or "Tomorrow at 6pm"';
-//             } else {
-//                 // Create Luxon DateTime from chrono's result
-//                 let date = DateTime.fromJSDate(dateObj.date(), { zone: userTimezone.at(0).timezone });
-//                 //date = date.setZone("Asia/Jerusalem", { keepLocalTime: true })
-//                 console.log(date)
-//                 //date = date.setZone("utc");
-//                 console.log(date)
-//                 date = date.setZone("Asia/Jerusalem")
-
-//                 console.log(date)
-
-//                 // Optional: Adjust if needed (Luxon handles timezone properly, usually no manual correction needed)
-//                 const message = prompt.slice(0, dateObj.index).trim().replace(/(^(me\sto\s|me\s))|\sin$/gi, '');
-
-//                 timedList[timedId.toString()] = new timedMsg(message, date.toJSDate(), chat, timedId, 'remind');
-//                 timedId++;
-//                 date = date.setZone("utc", { keepLocalTime: true });
-//                 console.log(date)
-//                 console.log(dateObj.date())
-//                 return `Ok, I will remind you "${message}" ${whichWeek(dateObj.date())}${dayjs(dateObj.date()).format(coolDateFormat)}`; // Updated to use dateObj.date()
-//             }
-//         }
-//     } catch (e) {
-//         console.log(e);
-//     }
-// }
-
 
 
 function timelessReminder(reminderText, chat, untimedList={}){
@@ -217,11 +201,7 @@ function reminderCMD(prompt, chat, timedList, location,untimedList={}) {
         return "The date you chose has already passed. Please choose a future date.";
       }
 
-      const message = prompt
-        .replace(dateObj.text,'')
-        .trim()
-        .replace(/^(me\s(to\s)?)|\s(in|at)$/gi, '')
-        .trim();
+    const message = extractUserMessage(prompt, dateObj.text)
   
       // 9) Schedule it
     //   console.log(parsedDate.toJSDate());
@@ -259,7 +239,7 @@ function findIndicies(string, eventList) {
         return [eventByName]
     } else {
         let indicies = []
-	const matchResult = string.match(/\b\d+\b/g) 
+	    const matchResult = string.match(/\b\d+\b/g) 
         if (!matchResult) return []
         matchResult.forEach(item => {
             const num = parseInt(item)-1
@@ -271,16 +251,23 @@ function findIndicies(string, eventList) {
     }
 }
 
+function getMostRecentWentOffEvent(chat, allEvents) {
+    const eventsByWentoff = Object.values(allEvents[chat]?.timedList ?? []).filter(x=>x.type=="remind" && x.lastWentOff!==null).sort((a,b)=>b.lastWentOff-a.lastWentOff);
+    return eventsByWentoff.length > 0 ? eventsByWentoff[0] : null;
+}
+
 function doneCMD(prompt,chat,allEvents) { //add untimed reminders from the untimed list
-	const untimedReminders = Object.values(allEvents[chat]&&allEvents[chat]["untimedList"]||[])
-    const sorted_reminders = Object.values(allEvents[chat]&&allEvents[chat]["timedList"]||[]).filter(x=>x.type=="remind").sort((a,b)=>a.time-b.time);
-    if (sorted_reminders.length==0 && untimedReminders.length==0) return 'No reminders nice job'
+	const untimedReminders = Object.values(allEvents[chat]?.untimedList ?? [])
+    const sorted_reminders = getSortedReminders(allEvents[chat]?.timedList)
+    if (sorted_reminders.length===0 && untimedReminders.length===0) return 'No reminders nice job'
     
     const reminderList = ([...untimedReminders,...sorted_reminders]).map(x=>x.message)
     const query = prompt.trim().split(/\s+/).slice(1).join(" ").trim()
-    let indicies = findIndicies(query, reminderList)
-    indicies.sort((a,b)=>a-b)
-
+    let indicies = []
+    if (query) {
+        indicies = findIndicies(query, reminderList)
+        indicies.sort((a,b)=>a-b)
+    }
     if (indicies.length!==0) {
         let returnStr = ''
         indicies.forEach(index => {
@@ -292,16 +279,20 @@ function doneCMD(prompt,chat,allEvents) { //add untimed reminders from the untim
                 sorted_reminders[index - untimedReminders.length].done(allEvents);
             }
         });
-
         return returnStr;
+    } else {
+        const mostRecentEvent = getMostRecentWentOffEvent(chat, allEvents);
+        if (mostRecentEvent) {
+            mostRecentEvent.done(allEvents)
+            return 'Done with "'+mostRecentEvent.message+'".'
+        } else if (sorted_reminders.length!==0) {
+            sorted_reminders[0].done(allEvents)
+            return 'Done with "'+sorted_reminders[0].message+'".'
+        } else {
+            untimedReminders[0].done(allEvents)
+            return 'Done with "'+untimedReminders[0].message+'".'
+        }
     }
-
-	if (untimedReminders.length!==0) {
-    allEvents[chat]["untimedList"][untimedReminders[0].id].done(allEvents)
-	return 'Done with "'+untimedReminders[0].message+'".'
-	} else {
-    allEvents[chat]["timedList"][sorted_reminders[0].id].done(allEvents)
-    return 'Done with "'+sorted_reminders[0].message+'".'}
 }
 
 function snoozeCMD(prompt,chat,allEvents,location) {
@@ -312,37 +303,34 @@ function snoozeCMD(prompt,chat,allEvents,location) {
         const now = new Date()
     prompt = prompt.split(' ').slice(1).join(' ');
 
+    // Parse the date (Luxon DateTime, chrono result, status)
     const [dateObj, parsedDate, parseStatus] = parseDate(prompt, location);
-    
+
     if (parseStatus === -1) {
         return "Try rephrasing your date, like 'Saturday at 14' or 'Tomorrow at 6pm'";
     } else if (parseStatus === 2) {
         return "The date you chose has already passed. Please choose a future date.";
     } else {
-            const untimedReminders = Object.values(allEvents[chat]&&allEvents[chat]["untimedList"]||[])
-            const sorted_reminders = Object.values(allEvents[chat]&&allEvents[chat]["timedList"]||[]).filter(x=>x.type=="remind").sort((a,b)=>a.time-b.time);
+            const untimedReminders = Object.values(allEvents[chat]?.untimedList ?? [])
+            const sorted_reminders = getSortedReminders(allEvents[chat]?.timedList)
             if (sorted_reminders.length==0 && untimedReminders.length==0) return 'No reminders nice job'
 
             const reminderList = ([...untimedReminders,...sorted_reminders]).map(x=>x.message)
             const query = prompt.replace(parsedDate.text,'').trim()
-            let indicies = findIndicies(query, reminderList)
-            indicies.sort((a,b)=>a-b)
+            let indicies = []
+            if (query) {
+                indicies = findIndicies(query, reminderList)
+                indicies.sort((a,b)=>a-b)
+            }
+            
 
-            
-            
             try {
-                if (allEvents[chat]['timedList'] === undefined) {
-                    allEvents[chat]['timedList'] = {}
-                }
-                if (allEvents[chat]['untimedList'] === undefined) {
-                    allEvents[chat]['untimedList'] = {}
-                }
+                ensureChatLists(allEvents, chat)
                 let chatObj = null;
                 if (indicies.length!==0) {
                     indicies.forEach(index => {
                         if (index < untimedReminders.length) {
                             chatObj = allEvents[chat]["untimedList"][untimedReminders[index].id]
-                            console.log(chatObj)
                             const id = randomUUID();
                             allEvents[chat]["timedList"][id] = new timedMsg(chatObj.message, dateObj.toJSDate(), chat, id, 'remind', true)
                             chatObj = allEvents[chat]["timedList"][id]
@@ -353,18 +341,24 @@ function snoozeCMD(prompt,chat,allEvents,location) {
                             chatObj.snooze(dateObj.toJSDate())
                         }
                     });
-                } else if (sorted_reminders.length!==0) {
-                    chatObj = allEvents[chat]["timedList"][sorted_reminders[0].id]
-                    chatObj.snooze(dateObj.toJSDate())
-                } else if (untimedReminders.length!==0) {
-                    chatObj = allEvents[chat]["untimedList"][untimedReminders[0].id]
-                    const id = randomUUID();
-                    allEvents[chat]["timedList"][id] = new timedMsg(chatObj.message, dateObj.toJSDate(), chat, id, 'remind', true)
-                    delete allEvents[chat]["untimedList"][untimedReminders[0].id]
-                    
-                    chatObj.snooze(dateObj.toJSDate())
                 } else {
-                        return 'No reminders nice job'
+                    const mostRecentEvent = getMostRecentWentOffEvent(chat, allEvents);
+                    if (mostRecentEvent) {
+                        chatObj = allEvents[chat]["timedList"][mostRecentEvent.id]
+                        chatObj.snooze(dateObj.toJSDate())
+                    } else if (sorted_reminders.length!==0) {
+                        chatObj = allEvents[chat]["timedList"][sorted_reminders[0].id]
+                        chatObj.snooze(dateObj.toJSDate())
+                    } else if (untimedReminders.length!==0) {
+                        chatObj = allEvents[chat]["untimedList"][untimedReminders[0].id]
+                        const id = randomUUID();
+                        allEvents[chat]["timedList"][id] = new timedMsg(chatObj.message, dateObj.toJSDate(), chat, id, 'remind', true)
+                        chatObj = allEvents[chat]["timedList"][id]
+                        delete allEvents[chat]["untimedList"][untimedReminders[0].id]
+                        chatObj.snooze(dateObj.toJSDate())
+                    } else {
+                            return 'No reminders nice job'
+                    }
                 }
             return 'Ok. I will now remind you "'+chatObj.message+'"'+whichWeek(dateObj.toJSDate())+dayjs(dateObj.toJSDate()).format(coolDateFormat)
             }
@@ -375,8 +369,6 @@ function snoozeCMD(prompt,chat,allEvents,location) {
         }
     }
 }
-
-const coolDateFormat = 'ddd @ h:mm a'
 
 function whichWeek(date) {
     const now = new Date()
@@ -399,7 +391,7 @@ function reminders(timedList,untimedList={}) {
         untimedList = {}
     }
     
-    const sorted_reminders = Object.values(timedList).filter(x=>x.type=="remind").sort((a,b)=>a.time-b.time);
+    const sorted_reminders = getSortedReminders(timedList)
 
     let messageContent = 'Todo:\n'
     let i = 1
@@ -410,7 +402,7 @@ function reminders(timedList,untimedList={}) {
     
 	messageContent+="\n\nReminders:\n"
     for (let reminder of sorted_reminders) {
-        messageContent+="\n"+i+". "+reminder.message+whichWeek(reminder.time)+dayjs(reminder.time).format(coolDateFormat)
+        messageContent+="\n"+i+". "+reminder.message+formatWeekAndTime(reminder.time)
         i++
     }
     return messageContent
@@ -446,12 +438,8 @@ function schedule(prompt,chat,allEvents) {
         } else {
             const message = prompt.slice(0,contact.index).trim().replace(new RegExp('(\\sto$)|\\s+'+contact+'|\\sin$','gi'),'')
            let contactChat = contact+'@s.whatsapp.us' 
-            if (!allEvents[contactChat]) {
-                allEvents[contactChat] = {timedList:{}}
-            }
-            if (!allEvents[chat]) {
-                allEvents[chat] = {timedList:{}}
-            }
+            ensureChatLists(allEvents, contactChat)
+            ensureChatLists(allEvents, chat)
             const id = randomUUID();
 
             allEvents[contactChat]['timedList'][id] = new timedMsg(message,dateObj.date(),contactChat, id,'schedule',chat.replace('@s.whatsapp.us',''))
@@ -479,6 +467,7 @@ function unscheduleMostRecent(chat,allEvents) {
 
 module.exports = {doneCMD, snoozeCMD, reminderCMD, reminders, timedMsg, schedule, unscheduleMostRecent, scheduled}
 
+
 function testRemind(){
     testUntimedList = {}
     testTimedList = {}
@@ -502,5 +491,4 @@ function testRemind(){
 
 }
 
-
-//testRemind()
+if (require.main === module) testRemind()

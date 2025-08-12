@@ -1,14 +1,14 @@
 const fs = require('fs');
 const dayjs = require('dayjs');
 
-const {Client} = require('./Client.js');
+const { Client } = require('./Client.js');
 
-const responder = require('./messageSenders/ResponseCmd.js')
-const { timeTick } = require('./messageSenders/TimedStuff.js')
-const { timedMsg } = require('./utilitystuff/ScheduledSendandReminders.js')
+const responder = require('./messageSenders/ResponseCmd.js');
+const { timeTick } = require('./messageSenders/TimedStuff.js');
+const { timedMsg } = require('./utilitystuff/ScheduledSendandReminders.js');
 const qrcode = require('qrcode-terminal');
 
-const { soccerResponse } = require('./messageSenders/SoccerStuff')
+const { soccerResponse } = require('./messageSenders/SoccerStuff');
 const jsonPath = './saved-events.json';
 
 
@@ -23,7 +23,7 @@ const client = new Client();
 
 const dateFormat = 'ddd DD.MM.YYYY @ h:mm a';
 
-var events = []; /*= [{ // Solely for easier auto-completion
+let events = []; /*= [{ // Solely for easier auto-completion
     eventName: String.prototype, date: Date.prototype, attendance: [{ id: String.prototype, name: String.prototype, guests: string.prototype, food: string prototype }]
 }];*/
 
@@ -31,16 +31,34 @@ let allEvents = {};
 
 const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
 
-const now_test = new Date()
-console.log(dayjs(now_test).format(dateFormat))
+// simple startup timestamp
+console.log(dayjs(new Date()).format(dateFormat));
 
-function record(arr, jsonPath) {
-    fs.writeFile(jsonPath, JSON.stringify(arr), (err) => {
+// Helper: persist events JSON
+function record(arr, path) {
+    fs.writeFile(path, JSON.stringify(arr), (err) => {
         if (err) {
             console.log(err);
         }
-        console.log('the database has been updated')
+        console.log('the database has been updated');
     });
+}
+
+// Helper: get participant number for a group message if possible
+async function extractPhoneNumber(client, msg, fallbackJid) {
+    let phoneNumber = fallbackJid.split('@')[0];
+    if (msg.isGroup) {
+        const group = await client.getGroupMetadata(fallbackJid);
+        if (group) {
+            const participant = group.participants.find((p) => p.id === msg.key.participant);
+            if (participant && participant.number) {
+                phoneNumber = participant.number.split('@')[0];
+            } else if (participant && participant.id.endsWith('@s.whatsapp.net')) {
+                phoneNumber = participant.id.split('@')[0];
+            }
+        }
+    }
+    return phoneNumber;
 }
 
 function saltyBot(msg, client, contactname) {
@@ -50,23 +68,23 @@ function saltyBot(msg, client, contactname) {
     switch (randInt) {
         case 0:
             offensiveThing = 'sucks maaaaad canine penis';
-            break
+            break;
         case 1:
             offensiveThing = 'has aids';
-            break
+            break;
         case 2:
             offensiveThing = 'hangs out with goyim';
-            break
+            break;
         case 3:
             offensiveThing = 'has a sister who once licked a nazi';
-            break
+            break;
         case 4:
-            offensiveThing = 'drinks the pee of local street performers'
+            offensiveThing = 'drinks the pee of local street performers';
     }
     if (!msg.body.startsWith('!') && msg.body.match(/\b(dinner|lunch)\b/i)) {
-        msg.reply('oh i see whats going on here')
-        setTimeout(() => { client.sendMessage(chat, "don't mind me continue as if im not even here") }, 3000);
-        setTimeout(() => { client.sendMessage(chat, `just saying, i heard that ${contactname} ${offensiveThing}`) }, 5000);
+        msg.reply('oh i see whats going on here');
+        setTimeout(() => { client.sendMessage(chat, "don't mind me continue as if im not even here"); }, 3000);
+        setTimeout(() => { client.sendMessage(chat, `just saying, i heard that ${contactname} ${offensiveThing}`); }, 5000);
 
     }
 }
@@ -74,15 +92,23 @@ function saltyBot(msg, client, contactname) {
 
 if (fs.existsSync(jsonPath)) {
     try {
-        allEvents = JSON.parse(fs.readFileSync(jsonPath, 'utf8'), (key, value) => {
-            if (typeof value === "string" && isoDateRegex.exec(value)) { 
+    allEvents = JSON.parse(fs.readFileSync(jsonPath, 'utf8'), (key, value) => {
+            if (typeof value === 'string' && isoDateRegex.exec(value)) {
                 return new Date(value); 
-            } else if (key === 'timedList' || key ==="untimedList") {
-                let transformedTimedList = {}
+            } else if (key === 'timedList' || key === 'untimedList') {
+                const transformedTimedList = {};
                 for (const [key0, i] of Object.entries(value)) {
-                    transformedTimedList[key0] = new timedMsg(i.message, i.time, i.chat, i.id, i.type, i.snoozable);
+                    transformedTimedList[key0] = new timedMsg(
+                        i.message,
+                        i.time,
+                        i.chat,
+                        i.id,
+                        i.type,
+                        i.snoozable,
+                        i.lastWentOff
+                    );
                 }
-                return transformedTimedList
+                return transformedTimedList;
             } 
             return value;
         });
@@ -90,7 +116,7 @@ if (fs.existsSync(jsonPath)) {
         console.log(err);
     }
 } else {
-    console.log('but why tho')
+    console.log('but why tho');
 }
 
 //allEvents = convertListToObj(allEvents)
@@ -110,18 +136,18 @@ client.on('auth_failure', msg => {
 
 client.on('ready', () => {
     console.log('\x1b[32m%s\x1b[0m', 'READY');
-    setInterval(timeTick, 1000 * intervalSize, client, allEvents)
+    setInterval(timeTick, 1000 * intervalSize, client, allEvents);
 });
 
 //client.initialize();
-let state = []
-const soccerChat = '120363029029121540@g.us'
+let state = [];
+const soccerChat = '120363029029121540@g.us';
 const intervalSize = 5;
 //const soccerChat = '972587120601@c.us'
 
 
 if (allEvents[soccerChat] == undefined) {
-    allEvents[soccerChat] = { events: [], teams: [] }
+    allEvents[soccerChat] = { events: [], teams: [] };
 }
 
 // for implimenting gabeNames
@@ -129,25 +155,11 @@ if (allEvents[soccerChat] == undefined) {
 // const contactData = JSON.parse(fs.readFileSync(baileys_store + "contacts.json", 'utf8'));
 
 
-let is_global = false
+let is_global = false;
 client.on('message', async msg => {
     try {
-        //const contact = await msg.getContact()
-        const jid = msg.from;
-        msg;
-        //console.log(msg)
-        let phoneNumber = jid.split('@')[0];
-        if (msg.isGroup) {
-            const group = await client.getGroupMetadata(jid);
-            if (group) {
-                const participant = group.participants.find(participant => participant.id === msg.key.participant);
-                if (participant && participant.number) {
-                    phoneNumber = participant.number.split('@')[0];
-                } else if (participant && participant.id.endsWith('@s.whatsapp.net')) {
-                    phoneNumber = participant.id.split('@')[0];
-                }
-            }
-        }
+    const jid = msg.from;
+    const phoneNumber = await extractPhoneNumber(client, msg, jid);
 
 
         // if (contactData.contacts) {
@@ -160,45 +172,52 @@ client.on('message', async msg => {
         // }
 
         const contactname = msg.pushName;
-        let attendee = { id: contactname, number: phoneNumber, guests: 0, food: 'nothing' }
+        let attendee = { id: contactname, number: phoneNumber, guests: 0, food: 'nothing' };
         const chatNum = msg.from;
         if (attendee.number == '972587120601') {
-            attendee.id = 'God'
+            attendee.id = 'God';
         }
         console.log(`${contactname} ${phoneNumber}`);
 
-        is_global = !(msg.body.match(/\s+-private\b/gi))
+        is_global = !(msg.body.match(/\s+-private\b/gi));
         /*allEvents['global'] = Object.entries(allEvents).filter(([key,value])=> key !== '120363029029121540@g.us' && key !== 'global').reduce((acc, item) => {
             return acc.concat(item[1].events.filter((event)=> (event.date) && !(event.isPrivate)))
             },[])*/
         if (allEvents['global'] === undefined) { 
-            allEvents['global'] = [] 
+            allEvents['global'] = []; 
             record(allEvents, jsonPath);
         }
         if (is_global) {
-            events = allEvents['global']
+            events = allEvents['global'];
         } else if (allEvents[chatNum]) {
-            events = allEvents[chatNum].events
+            events = allEvents[chatNum].events;
         }
         if (!allEvents[chatNum]) {
-            allEvents[chatNum] = { events: [], location: 'Haifa' }
-            events = allEvents[chatNum].events
+            allEvents[chatNum] = { events: [], location: 'Haifa' };
+            events = allEvents[chatNum].events;
             record(allEvents, jsonPath);
         }
         //record(allEvents, jsonPath);
 
-        let message = msg.body
-        const now = new Date()
+        const message = msg.body;
+        const now = new Date();
         if (chatNum == soccerChat) {
-            soccerResponse(message, msg, attendee, allEvents[soccerChat])
-            record(allEvents, jsonPath)
+            soccerResponse(message, msg, attendee, allEvents[soccerChat]);
+            record(allEvents, jsonPath);
         } else {
             //saltyBot(msg,client,contactname)
-            responder.response(client, msg, events.filter(event => event.date > now), attendee, is_global ? allEvents['global'] : allEvents[chatNum].events, allEvents)
-            record(allEvents, jsonPath)
+            responder.response(
+                client,
+                msg,
+                events.filter(event => event.date > now),
+                attendee,
+                is_global ? allEvents['global'] : allEvents[chatNum].events,
+                allEvents,
+            );
+            record(allEvents, jsonPath);
         }
     } catch (err) {
-        console.log(err)
+        console.log(err);
 //        msg.reply('uh oh sp! there was an error!')
     }
 });
