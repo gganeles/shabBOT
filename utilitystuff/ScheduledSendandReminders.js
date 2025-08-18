@@ -64,6 +64,7 @@ class timedMsg {
     }
 
     send(client,allEvents) {
+	try {
         if (this.type == 'remind') {
             this.lastWentOff = new Date()
             client.sendMessage(this.chat,this.toReminderString())
@@ -73,6 +74,9 @@ class timedMsg {
             delete allEvents[this.chat].timedList[this.id.toString()]
         }
         console.log('sending message '+this.id.toString())
+	} catch (e) {
+	    console.log(e)
+	}
     }
 
     tick(date,client,allEvents) {
