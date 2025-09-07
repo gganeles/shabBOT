@@ -134,9 +134,13 @@ client.on('auth_failure', msg => {
     console.error('AUTHENTICATION FAILURE', msg);
 });
 
+let tickId =0;
 client.on('ready', () => {
     console.log('\x1b[32m%s\x1b[0m', 'READY');
-    setInterval(timeTick, 1000 * intervalSize, client, allEvents);
+    if (tickId) {
+	clearInterval(tickId);
+    }
+    tickId = setInterval(timeTick, 1000 * intervalSize, client, allEvents);
 });
 
 //client.initialize();
