@@ -16,12 +16,14 @@ const { shopCMD, shopListCMD, unshopCMD } = require('../utilitystuff/shopping.js
 async function response(client, msg, events, attendee, unfilteredEvents, allEvents) {
     const chat = msg.from;
     const chat0 = allEvents[chat];
-    const promptList = msg.body.split(/\n|\s+!(?=\w)/)
+    const promptList = msg.body.split(/\n|\s+(?=!\w)/)
+    console.log(promptList)
     try {
         for (let q = 0; q < promptList.length; q++) {
-            if (/*msg.mentionedIds.includes(client.info.wid._serialized) || this is for checking when tagged */ msg.body.split('\n').at(q).startsWith("!")) {
+	    let prompt = promptList.at(q)
+            if (/*msg.mentionedIds.includes(client.info.wid._serialized) || this is for checking when tagged */ prompt.startsWith("!")) {
                 //client.sendSeen(msg.getChat()); // Only appear to check messages when tagged or prompted
-                prompt = promptList.at(q).replace(new RegExp(`\\s*(^!)\\s*`, "m"), ''); // doesnt remove @${client.info.wid.user}
+                prompt = prompt.replace(new RegExp(`\\s*(^!)\\s*`, "m"), ''); // doesnt remove @${client.info.wid.user}
                 console.log('\n', prompt);
                 prompt = prompt.replace(new RegExp('\\b(?:my)\\b\\s', 'gi'), `${attendee.id}'s `).trim(); // Remove '!' or @Shabbot from message (and other preceding spaces)
 
