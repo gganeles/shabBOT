@@ -4,7 +4,6 @@ package gabba
 // Place this in your main bot.go or create a separate message handler file
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -202,7 +201,7 @@ func checkAndSendReminders(client *whatsmeow.Client) {
 		FROM reminders
 		WHERE time > 0 AND time <= ? AND snoozable = 0
 		ORDER BY time
-	`, /* current unix timestamp */)
+	` /* current unix timestamp */)
 
 	if err != nil {
 		fmt.Println("Error querying reminders:", err)
@@ -220,8 +219,8 @@ func checkAndSendReminders(client *whatsmeow.Client) {
 		if reminderType == "remind" {
 			messageToSend = fmt.Sprintf(
 				"you wanted me to remind you:\n \"%s\".\n\n"+
-				"To snooze this reminder, please reply with:\n"+
-				"\"!snooze   new time\" within 24 hours.",
+					"To snooze this reminder, please reply with:\n"+
+					"\"!snooze   new time\" within 24 hours.",
 				message,
 			)
 

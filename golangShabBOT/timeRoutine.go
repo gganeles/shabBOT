@@ -15,12 +15,9 @@ func timeRoutine(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			// Check for reminders that need to be sent
-			checkAndSendReminders(client, db, ctx)
-		}
+	for range ticker.C {
+		// Check for reminders that need to be sent
+		checkAndSendReminders(client, db, ctx)
 	}
 }
 

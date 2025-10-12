@@ -15,11 +15,11 @@ require (
 	github.com/elliotchance/orderedmap/v3 v3.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/hebcal/hebcal-go v0.10.6 // indirect
+	github.com/hebcal/hebcal-go v0.10.6 // direct
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/nathan-osman/go-sunrise v1.1.0 // indirect
-	github.com/olebedev/when v1.1.0 // indirect
+	github.com/olebedev/when v1.1.0 // direct
 	github.com/petermattis/goid v0.0.0-20250904145737-900bdf8bb490 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
