@@ -1,0 +1,162 @@
+package commands
+
+import (
+	"database/sql"
+	"strings"
+
+	"go.mau.fi/whatsmeow/types" // For JID type
+)
+
+// CommandRouter routes incoming messages to appropriate command handlers
+type CommandRouter struct {
+	DB *sql.DB
+}
+
+// NewCommandRouter creates a new command router with database connection
+func NewCommandRouter(db *sql.DB) *CommandRouter {
+	return &CommandRouter{DB: db}
+}
+
+// Route processes a message and returns the appropriate response
+// prompt: The full message text (including !)
+// chatID: The WhatsApp chat/group ID
+// attendeeID: The sender's WhatsApp ID/phone number
+func (r *CommandRouter) Route(prompt string, chatID, attendeeID string) string {
+	// Check if message starts with !
+	if !strings.HasPrefix(prompt, "!") {
+		return ""
+	}
+
+	// Remove ! and get command
+	prompt = strings.TrimPrefix(prompt, "!")
+	args := parseArgs(prompt)
+
+	if len(args) == 0 {
+		return ""
+	}
+
+	cmd := strings.ToLower(args[0])
+
+	// Get location for commands that need it
+	location, _ := GetChatLocation(r.DB, chatID)
+	if location == "" {
+		location = "Haifa"
+	}
+
+	// Route to appropriate command handler
+	switch cmd {
+	// Simple static commands
+	case "help":
+		return HelpCmd(prompt)
+	case "docs":
+		return DocsCmd()
+	case "count":
+		return CountCmd()
+	// Location commands
+	case "shablocation", "shabloc", "location", "setloc", "chatlocation":
+		return ShabLocationCmd(r.DB, prompt, chatID)
+	case "shabtimes", "shabbattimes":
+		return ShabTimesCmd(r.DB, prompt, chatID)
+	case "chag", "chagtimes", "holiday", "holidays", "nextholiday":
+		return ChagTimesCmd(r.DB, prompt, chatID)
+	// QuickShab commands
+	case "quickshab":
+		return QuickShabCmd(r.DB, prompt, chatID)
+
+	case "update", "up", "num", "ppl":
+		return UpdateNumberCmd(r.DB, prompt, chatID)
+
+	case "show":
+		return ShowCmd(r.DB, chatID)
+
+	case "bring", "br", "bringing":
+		return BringCmd(r.DB, prompt, chatID, attendeeID)
+
+	case "assign":
+		return AssignCmd(r.DB, prompt, chatID)
+
+	case "unbring", "unbr":
+		return UnbringCmd(r.DB, chatID, attendeeID)
+
+	case "unassign":
+		return UnassignCmd(r.DB, prompt, chatID)
+
+	// Shopping list commands
+	case "shop", "shp", "sh":
+		return ShopCmd(r.DB, prompt, chatID)
+
+	case "unshop", "unshp", "unsh":
+		return UnshopCmd(r.DB, prompt, chatID)
+
+	case "shoplist", "shplist", "shoppinglist", "shlst", "shlist", "shls":
+		return ShopListCmd(r.DB, chatID)
+
+	// Reminder commands
+	case "remind":
+		return RemindCmd(r.DB, prompt, chatID, location)
+
+	case "reminders", "rems", "todo":
+		return RemindersCmd(r.DB, chatID)
+
+	case "snooze":
+		return SnoozeCmd(r.DB, prompt, chatID, location)
+
+	case "done":
+		return DoneCmd(r.DB, prompt, chatID)
+
+	// Scheduled message commands
+	case "send":
+		return SendCmd(r.DB, prompt, chatID, location)
+
+	case "unsend":
+		return UnsendCmd(r.DB, chatID)
+
+	case "scheduled":
+		return ScheduledCmd(r.DB, chatID)
+
+	// Other commands
+	case "needs":
+		return NeedsCmd(prompt)
+
+	case "fast", "fasting":
+		return FastCmd(r.DB, chatID)
+
+	case "start":
+		return StartCmd(prompt)
+
+	case "end":
+		return EndCmd()
+
+	default:
+		return "" // Unknown command, no response
+	}
+}
+
+// ParseMultipleCommands handles messages with multiple commands separated by newlines
+func (r *CommandRouter) ParseMultipleCommands(message string, chatID, attendeeID types.JID) []string {
+	// Split by newlines and spaces followed by !
+	lines := strings.Split(message, "\n")
+	var responses []string
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		// Check for multiple commands on same line (e.g., "!help !docs")
+		parts := strings.Split(line, " !")
+		for i, part := range parts {
+			if i > 0 {
+				part = "!" + part
+			}
+
+			response := r.Route(part, chatID.String(), attendeeID.String())
+			if response != "" {
+				responses = append(responses, response)
+			}
+		}
+	}
+
+	return responses
+}

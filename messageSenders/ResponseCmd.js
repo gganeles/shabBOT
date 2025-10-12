@@ -20,25 +20,25 @@ async function response(client, msg, events, attendee, unfilteredEvents, allEven
     console.log(promptList)
     try {
         for (let q = 0; q < promptList.length; q++) {
-	    let prompt = promptList.at(q)
+            let prompt = promptList.at(q)
             if (/*msg.mentionedIds.includes(client.info.wid._serialized) || this is for checking when tagged */ prompt.startsWith("!")) {
                 //client.sendSeen(msg.getChat()); // Only appear to check messages when tagged or prompted
                 prompt = prompt.replace(new RegExp(`\\s*(^!)\\s*`, "m"), ''); // doesnt remove @${client.info.wid.user}
                 console.log('\n', prompt);
                 prompt = prompt.replace(new RegExp('\\b(?:my)\\b\\s', 'gi'), `${attendee.id}'s `).trim(); // Remove '!' or @Shabbot from message (and other preceding spaces)
 
-                if (prompt.startsWith('list') || prompt.startsWith('ls')) { // list events|people|dishes
+                if (prompt.startsWith('list') || prompt.startsWith('ls')) { // list events|people|dishes  | DEPRECEIATED 
                     let messageContent = '';
                     list(prompt, events).forEach(item => messageContent += item);
                     msg.reply(
                         messageContent);
-                } else if (prompt.match(/^rent/gi)) {
+                } else if (prompt.match(/^rent/gi)) { //  | DEPRECEIATED
                     msg.reply(rent(prompt));
-                } else if (prompt.startsWith('new') || prompt.startsWith('n ')) { // new event name on date
+                } else if (prompt.startsWith('new') || prompt.startsWith('n ')) { // new event name on date  | DEPRECEIATED
                     msg.reply(createEvent(prompt, unfilteredEvents, attendee));
-                } else if (prompt.startsWith('rename') || prompt.startsWith('rn')) { // rename bad name|index "Good name"
+                } else if (prompt.startsWith('rename') || prompt.startsWith('rn')) { // rename bad name|index "Good name"  | DEPRECEIATED
                     msg.reply(rename(prompt, events));
-                } else if (prompt.startsWith('coming') || prompt.startsWith('cm') || prompt.startsWith('join') || prompt.startsWith('jn')) { // coming event name
+                } else if (prompt.startsWith('coming') || prompt.startsWith('cm') || prompt.startsWith('join') || prompt.startsWith('jn')) { // coming event name  | DEPRECEIATED
                     let messageContent = '';
                     coming(prompt, events, attendee).forEach(item => messageContent += item);
                     msg.reply(messageContent);
@@ -50,7 +50,7 @@ async function response(client, msg, events, attendee, unfilteredEvents, allEven
                     //         thing.forEach(item => messageContent += item);
                     //         msg.reply(messageContent);
                     //     });
-                } else if (prompt.startsWith('daniel')) {
+                } else if (prompt.startsWith('daniel')) { //  | DEPRECEIATED
                     const randInt = Math.floor(Math.random() * 5);
                     var link = '';
                     switch (randInt) {
@@ -70,9 +70,9 @@ async function response(client, msg, events, attendee, unfilteredEvents, allEven
                             link = 'https://youtu.be/KhqjlVn9q4Y?t=117';
                     }
                     msg.reply(`YOU HAVE AWAKENED THE WRATH OF SATAN\n${link}`);
-                } else if (prompt.startsWith('hodi')) {
+                } else if (prompt.startsWith('hodi')) { //  | DEPRECEIATED
                     msg.reply('lets sing some shabbat songs\nhttps://www.youtube.com/watch?v=EWMPVn1kgIQ');
-                } else if (prompt.startsWith('leave') || prompt.startsWith('lv') || prompt.startsWith('uncoming') || prompt.startsWith('uncm')) {
+                } else if (prompt.startsWith('leave') || prompt.startsWith('lv') || prompt.startsWith('uncoming') || prompt.startsWith('uncm')) { //  | DEPRECEIATED
                     let messageContent = '';
                     leave(prompt, events, attendee).forEach(item => messageContent += item);
                     msg.reply(messageContent);
@@ -87,7 +87,7 @@ async function response(client, msg, events, attendee, unfilteredEvents, allEven
                     //     msg.reply(location(prompt,events))
 
 
-                } else if (prompt.startsWith('kira')) {
+                } else if (prompt.startsWith('kira')) { //  | DEPRECEIATED
                     msg.reply(`Wait wait Im not ready yet`);
                     setTimeout(() => { client.sendMessage(chat, "gimme one more second"); }, 3000);
                     setTimeout(() => { client.sendMessage(chat, "kk now im ready"); }, 5000);
@@ -96,25 +96,25 @@ async function response(client, msg, events, attendee, unfilteredEvents, allEven
                     setTimeout(() => { msg.reply("here's the kira command:") }, 10000);
                     setTimeout(() => { client.sendMessage(chat, "https://flashing-colors.com/"); }, 11000);
 
-                } else if (prompt.startsWith('remove') || prompt.startsWith('rm')) {
+                } else if (prompt.startsWith('remove') || prompt.startsWith('rm')) { //  | DEPRECEIATED
                     let messageContent = '';
                     remove(prompt, events, attendee, unfilteredEvents).forEach(item => messageContent += item);
                     msg.reply(messageContent);
 
-                } else if (prompt.startsWith('fraydy')) {
+                } else if (prompt.startsWith('fraydy')) { //  | DEPRECEIATED
                     const randInt = Math.floor(Math.random() * 2);
                     let link = 'https://www.youtube.com/watch?v=6Z8jBJ6w_7Q';
                     if (randInt) {
                         link = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
                     }
                     msg.reply(`I didn't know what to put for this one so here's a video of an elephant doing an handstand\n${link}`);
-                } else if (prompt.startsWith('settime')) {
+                } else if (prompt.startsWith('settime')) { //  | DEPRECEIATED
                     msg.reply(settime(prompt, events));
                 } else if (prompt.startsWith('gil')) {
                     let link = ['https://www.youtube.com/watch?v=StTqXEQ2l-Y', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'];
                     msg.reply(`everything is awesome!\n${link[Math.floor(Math.random() * 2)]}`);
                 }
-                else if (prompt.startsWith('surprise')) {
+                else if (prompt.startsWith('surprise')) { //  | DEPRECEIATED
                     let link = ['https://www.youtube.com/watch?v=Bw3JHVExpbk&list=PLEYslXW1oN0e3QEWbKDou4Mto-y-4-STg', 'https://www.youtube.com/watch?v=gcm-QBDgnWM&list=PLEYslXW1oN0e3QEWbKDou4Mto-y-4-STg&index=3'];
                     msg.reply(`everything is awesome!\n${link[Math.floor(Math.random() * 2)]}`);
                 }
@@ -122,20 +122,20 @@ async function response(client, msg, events, attendee, unfilteredEvents, allEven
                     let link = 'https://www.chabad.org/holidays/sefirah/omer-count_cdo/jewish/Count-the-Omer.htm';
                     msg.reply(`you forgot that your suppose to count the omer!? ha! no, not tonight\n${link}`);
                 }
-                else if (prompt.startsWith('Amnon')) {
+                else if (prompt.startsWith('Amnon')) { //  | DEPRECEIATED
                     const randInt = Math.floor(Math.random() * 2);
                     let link = 'https://www.youtube.com/watch?v=D_IFNaTEXBA';
                     msg.reply(`Shalom Chabibi!\n${link}`);
                 }
-                else if (prompt.startsWith('gabe')) {
+                else if (prompt.startsWith('gabe')) { //  | DEPRECEIATED
                     const randInt = Math.floor(Math.random() * 2);
                     let link = 'https://www.youtube.com/watch?v=oWgTqLCLE8k';
                     msg.reply(`time to party!\n${link}`);
-                } else if (prompt.match(/\boren\b/gi)) {
+                } else if (prompt.match(/\boren\b/gi)) { //  | DEPRECEIATED
                     msg.reply(`you found it ${attendee.id}! Make sure your parents aren't around ;)\nhttps://www.pornhub.com/view_video.php?viewkey=ph5f3b21528d0d5`);
-                } else if (prompt.match(/^penis/gi)) {
+                } else if (prompt.match(/^penis/gi)) { //  | DEPRECEIATED
                     msg.reply(`hahahha nice job heres a gift for your hard work: https://youtu.be/KhqjlVn9q4Y?t=117`);
-                } else if (prompt.match(/\bbessie\b/gi)) {
+                } else if (prompt.match(/\bbessie\b/gi)) { //  | DEPRECEIATED
                     msg.reply('bessie you need this tinyurl.com/tatter-totters');
                 } else if (prompt.match(/^(shabbattimes|shabtimes)\b/gi)) {
                     const now = new Date();
@@ -172,7 +172,7 @@ async function response(client, msg, events, attendee, unfilteredEvents, allEven
                     msg.reply(unscheduleMostRecent(chat, allEvents));
                 } else if (prompt.match(/^scheduled\b/gi)) {
                     msg.reply(scheduled(chat, allEvents));
-                } else if (prompt.match(/^nico\b/gi)) {
+                } else if (prompt.match(/^nico\b/gi)) { // | DEPRECEIATED
                     dontBeAPussy(client, chat);
                 } else if (prompt.match(/^(fast|fasting)\b/gi)) {
                     const response = fastLister(new Date(), chat0.location);
