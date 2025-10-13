@@ -1,5 +1,4 @@
-node_modules/*
-bot_sessions/*
+*/node_modules/*
 .env
 saved-events*
 contactsStuff/*

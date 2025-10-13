@@ -1,0 +1,12 @@
+{
+  "name": "chrono-node-wrapper",
+  "version": "1.0.0",
+  "description": "Chrono-node wrapper for goja",
+  "license": "MIT",
+  "dependencies": {
+    "chrono-node": "^2.7.8"
+  },
+  "devDependencies": {
+    "browserify": "^17.0.0"
+  }
+}

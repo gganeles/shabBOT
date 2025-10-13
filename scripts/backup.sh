@@ -1,1 +1,0 @@
-cp /home/pi/shabbot/saved-events.json /home/pi/shabbot/backup/saved-events.json.bak
