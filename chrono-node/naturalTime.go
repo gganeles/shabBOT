@@ -70,9 +70,10 @@ func New() (*Parser, error) {
 }
 
 type timeResult struct {
-	Text  string
-	Index int
-	Time  time.Time
+	Text             string
+	Index            int
+	Time             time.Time
+	MicrosoftResults string
 }
 
 func (p *Parser) Parse(expr string, base time.Time) ([]timeResult, error) {
@@ -93,7 +94,6 @@ func (p *Parser) Parse(expr string, base time.Time) ([]timeResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal results for expression %q: %w", expr, err)
 	}
-
 	return timeResults, nil
 }
 

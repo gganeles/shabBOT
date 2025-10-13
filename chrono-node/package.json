@@ -4,6 +4,7 @@
   "description": "Chrono-node wrapper for goja",
   "license": "MIT",
   "dependencies": {
+    "@microsoft/recognizers-text-date-time": "^1.3.2",
     "chrono-node": "^2.7.8"
   },
   "devDependencies": {
