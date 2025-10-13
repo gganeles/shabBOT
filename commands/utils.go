@@ -57,7 +57,7 @@ var geoNamesList []GeoName
 
 // init loads the geoNames CSV file at package initialization
 func init() {
-	file, err := os.Open("golangShabBOT/commands/geoNamesList.csv")
+	file, err := os.Open("commands/geoNamesList.csv")
 	if err != nil {
 		// Try alternative path
 		file, err = os.Open("commands/geoNamesList.csv")
@@ -120,25 +120,15 @@ func parseInt(s string, defaultVal int) int {
 	return result
 }
 
-func parseTime(s string, location string) (int64, string, error) {
+func parseTime(s string, timezone *time.Location) (int64, string, error) {
 	// Use the when library to parse natural language dates
 	loc := time.UTC
-	if location != "" {
-		for _, geo := range geoNamesList {
-			if strings.EqualFold(geo.Name, location) {
-				if geo.Timezone != "" {
-					var err error
-					loc, err = time.LoadLocation(geo.Timezone)
-					if err != nil {
-						return 0, "", fmt.Errorf("invalid timezone for location: %s", geo.Timezone)
-					}
-				}
-				break
-			}
-		}
+	if timezone != nil {
+		loc = timezone
 	}
 
 	now := time.Now().In(loc)
+
 	parsed, err := dateParse.New()
 	if err != nil {
 		return 0, "", fmt.Errorf("could not parse time")
@@ -154,8 +144,14 @@ func parseTime(s string, location string) (int64, string, error) {
 	for i := range messageHalves {
 		messageHalves[i] = strings.TrimSpace(messageHalves[i])
 	}
+	timeStr := parsedDate[0].Time.Local().Format(time.DateTime)
+
 	message := strings.Join(messageHalves, " ")
-	return parsedDate[0].Time.Unix(), strings.TrimSpace(message), nil
+	cleanedTime, err := time.ParseInLocation(time.DateTime, timeStr, loc)
+	if err != nil {
+		return 0, "", fmt.Errorf("could not parse time")
+	}
+	return cleanedTime.Unix(), strings.TrimSpace(message), nil
 }
 
 // findGeoLocation searches for a location in the geoNamesList

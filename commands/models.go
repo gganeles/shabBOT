@@ -40,7 +40,8 @@ func InitDB(db *sql.DB) error {
 	schema := `
 	CREATE TABLE IF NOT EXISTS chats (
 		chat_id TEXT PRIMARY KEY,
-		location TEXT DEFAULT 'Haifa'
+		location TEXT DEFAULT 'Haifa',
+		timezone TEXT DEFAULT 'Asia/Jerusalem'
 	);
 
 	CREATE TABLE IF NOT EXISTS quickshab (
@@ -83,13 +84,18 @@ func InitDB(db *sql.DB) error {
 
 	// Migration: Add sent_time column if it doesn't exist
 	// This handles existing databases that don't have the column
-	_, err = db.Exec(`
-		ALTER TABLE reminders ADD COLUMN sent_time INTEGER DEFAULT 0
-	`)
+	_, err = db.Exec(`ALTER TABLE reminders ADD COLUMN sent_time INTEGER DEFAULT 0`)
 	// Ignore error if column already exists
 	if err != nil && !strings.Contains(err.Error(), "duplicate column name") {
 		// Only return error if it's not a "duplicate column" error
 		return nil // SQLite returns "duplicate column name" for existing columns
+	}
+
+	// Migration: Add timezone column to chats if it doesn't exist
+	_, err = db.Exec(`ALTER TABLE chats ADD COLUMN timezone TEXT DEFAULT 'Asia/Jerusalem'`)
+	// Ignore error if column already exists
+	if err != nil && !strings.Contains(err.Error(), "duplicate column name") {
+		return nil
 	}
 
 	return nil
@@ -111,11 +117,29 @@ func GetChatLocation(db *sql.DB, chatID string) (string, error) {
 	return location, err
 }
 
-// SetChatLocation sets the location for a chat
-func SetChatLocation(db *sql.DB, chatID, location string) error {
+// GetChatTimezone retrieves the timezone for a chat
+func GetChatTimezone(db *sql.DB, chatID string) string {
+	var timezone string
+	err := db.QueryRow(`SELECT timezone FROM chats WHERE chat_id = ?`, chatID).Scan(&timezone)
+	if err != nil {
+		return "Asia/Jerusalem" // Default fallback
+	}
+	return timezone
+}
+
+// SetChatLocation sets the location for a chat and updates timezone based on geo data
+func SetChatLocation(db *sql.DB, chatID, location string) (string, error) {
 	GetOrCreateChat(db, chatID)
-	_, err := db.Exec(`UPDATE chats SET location = ? WHERE chat_id = ?`, location, chatID)
-	return err
+
+	// Try to find timezone from geoNamesList
+	timezone := "Asia/Jerusalem" // Default
+	geoLocation := findGeoLocation(location)
+	if geoLocation != nil && geoLocation.Timezone != "" {
+		timezone = geoLocation.Timezone
+	}
+
+	_, err := db.Exec(`UPDATE chats SET location = ?, timezone = ? WHERE chat_id = ?`, geoLocation.Name, timezone, chatID)
+	return geoLocation.Name, err
 }
 
 // Utility function to capitalize first letter

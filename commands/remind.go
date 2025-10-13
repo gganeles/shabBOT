@@ -16,7 +16,7 @@ func generateUUID() string {
 }
 
 // RemindCmd creates timed or untimed reminders
-func RemindCmd(db *sql.DB, prompt, chatID, location string) string {
+func RemindCmd(db *sql.DB, prompt, chatID string, timezone *time.Location) string {
 	args := parseArgs(prompt)
 
 	if len(args) < 2 {
@@ -30,7 +30,7 @@ func RemindCmd(db *sql.DB, prompt, chatID, location string) string {
 	GetOrCreateChat(db, chatID)
 
 	// Parse time
-	targetTime, message, err := parseReminderTime(reminderText, location)
+	targetTime, message, err := parseReminderTime(reminderText, timezone)
 	if err != nil {
 		// If parsing fails, create as untimed
 		message = cleanReminderText(reminderText)
@@ -65,7 +65,7 @@ func RemindCmd(db *sql.DB, prompt, chatID, location string) string {
 }
 
 // RemindersCmd lists all active reminders
-func RemindersCmd(db *sql.DB, chatID string) string {
+func RemindersCmd(db *sql.DB, chatID string, timezone *time.Location) string {
 	// Fetch timed reminders ordered by time (earliest first)
 	timedRows, err := db.Query(`
 		SELECT id, message, time, type FROM reminders 
@@ -80,14 +80,14 @@ func RemindersCmd(db *sql.DB, chatID string) string {
 
 	var timedReminders []string
 	now := time.Now().Unix()
-	nowTime := time.Now()
+	nowTime := time.Now().In(timezone)
 
 	for timedRows.Next() {
 		var id, message, reminderType string
 		var reminderTime int64
 		timedRows.Scan(&id, &message, &reminderTime, &reminderType)
 
-		reminderTimeObj := time.Unix(reminderTime, 0)
+		reminderTimeObj := time.Unix(reminderTime, 0).In(timezone)
 		timeStr := reminderTimeObj.Format("Mon @ 3:04 PM")
 		relativeStr := formatRelativeTime(reminderTimeObj, nowTime)
 
@@ -141,7 +141,7 @@ func RemindersCmd(db *sql.DB, chatID string) string {
 }
 
 // SnoozeCmd snoozes reminders by keyword
-func SnoozeCmd(db *sql.DB, prompt, chatID, location string) string {
+func SnoozeCmd(db *sql.DB, prompt, chatID string, timezone *time.Location) string {
 	args := parseArgs(prompt)
 
 	if len(args) < 2 {
@@ -149,7 +149,7 @@ func SnoozeCmd(db *sql.DB, prompt, chatID, location string) string {
 	}
 
 	// Parse snooze duration from the arguments
-	newTime, searchQuery, err := parseReminderTime(strings.Join(args[1:], " "), location)
+	newTime, searchQuery, err := parseReminderTime(strings.Join(args[1:], " "), timezone)
 
 	fmt.Printf("Search Query: |%s|\n", searchQuery)
 
@@ -407,16 +407,16 @@ func formatRelativeTime(targetTime time.Time, now time.Time) string {
 	return ""
 }
 
-func parseReminderTime(text, location string) (time.Time, string, error) {
+func parseReminderTime(text string, timezone *time.Location) (time.Time, string, error) {
 	// Use the parseTime utility function as first resort
 	// It handles natural language dates like "tomorrow at 3pm", "in 5 minutes", etc.
-	timestamp, message, err := parseTime(text, location)
+	timestamp, message, err := parseTime(text, timezone)
 	if err == nil {
 		// Successfully parsed - now extract just the message part
 		// Try to find common time prepositions to split the message
 		// Clean up common prefixes
 		message = cleanReminderText(message)
-		return time.Unix(timestamp, 0), message, nil
+		return time.Unix(timestamp, 0).In(timezone), message, nil
 	}
 
 	return time.Time{}, "", fmt.Errorf("could not parse time")

@@ -259,11 +259,12 @@ func ChagTimesCmd(db *sql.DB, prompt, chatID string) string {
 
 	// Calculate days until
 	daysUntil := int(holidayDate.Sub(now.Truncate(24*time.Hour)).Hours() / 24)
-	if daysUntil == 0 {
+	switch daysUntil {
+	case 0:
 		response += "That's today!\n"
-	} else if daysUntil == 1 {
+	case 1:
 		response += "That's tomorrow!\n"
-	} else {
+	default:
 		response += fmt.Sprintf("That's in %d days\n", daysUntil)
 	}
 

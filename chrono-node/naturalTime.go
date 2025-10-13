@@ -76,7 +76,7 @@ type timeResult struct {
 }
 
 func (p *Parser) Parse(expr string, base time.Time) ([]timeResult, error) {
-	result, err := p.parseFunc(p.thisContext, p.runtime.ToValue(expr), p.runtime.ToValue(base.Format(time.RFC3339)))
+	result, err := p.parseFunc(p.thisContext, p.runtime.ToValue(expr), p.runtime.ToValue(base.Format(time.DateTime)))
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse expression %q: %w", expr, err)

@@ -8,37 +8,37 @@ import (
 )
 
 // SendCmd schedules a message to be sent at a specific time
-func SendCmd(db *sql.DB, prompt, chatID, location string) string {
+func SendCmd(db *sql.DB, prompt, chatID string, timezone *time.Location) string {
 	args := parseArgs(prompt)
-	
+
 	if len(args) < 2 {
 		return "Command usage: !send [message] [time]"
 	}
 
 	messageText := strings.Join(args[1:], " ")
-	
+
 	// Parse time from message
-	targetTime, cleanedMessage, err := parseReminderTime(messageText, location)
+	targetTime, cleanedMessage, err := parseReminderTime(messageText, timezone)
 	if err != nil {
 		return "Could not parse time. Try: !send [message] at [time]"
 	}
 
 	// Ensure chat exists
 	GetOrCreateChat(db, chatID)
-	
+
 	// Create scheduled message
 	id := generateUUID()
 	_, err = db.Exec(`
 		INSERT INTO reminders (id, chat_id, message, time, type, snoozable) 
 		VALUES (?, ?, ?, ?, 'send', 0)
 	`, id, chatID, cleanedMessage, targetTime.Unix())
-	
+
 	if err != nil {
 		return "Error scheduling message"
 	}
-	
-	return fmt.Sprintf(`Message "%s" scheduled for %s`, 
-		cleanedMessage, 
+
+	return fmt.Sprintf(`Message "%s" scheduled for %s`,
+		cleanedMessage,
 		targetTime.Format("Mon @ 3:04 PM"))
 }
 
@@ -59,7 +59,7 @@ func UnsendCmd(db *sql.DB, chatID string) string {
 
 	// Delete it
 	_, err = db.Exec(`DELETE FROM reminders WHERE id = ?`, id)
-	
+
 	if err != nil {
 		return "Error canceling scheduled message"
 	}
@@ -74,19 +74,19 @@ func ScheduledCmd(db *sql.DB, chatID string) string {
 		WHERE chat_id = ? AND type = 'send'
 		ORDER BY time
 	`, chatID)
-	
+
 	if err != nil {
 		return "Error retrieving scheduled messages"
 	}
 	defer rows.Close()
 
 	var messages []string
-	
+
 	for rows.Next() {
 		var message string
 		var sendTime int64
 		rows.Scan(&message, &sendTime)
-		
+
 		timeStr := time.Unix(sendTime, 0).Format("Mon @ 3:04 PM")
 		messages = append(messages, fmt.Sprintf("  • %s - %s", message, timeStr))
 	}

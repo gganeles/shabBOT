@@ -2,7 +2,9 @@ package commands
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
+	"time"
 
 	"go.mau.fi/whatsmeow/types" // For JID type
 )
@@ -41,6 +43,16 @@ func (r *CommandRouter) Route(prompt string, chatID, attendeeID string) string {
 	location, _ := GetChatLocation(r.DB, chatID)
 	if location == "" {
 		location = "Haifa"
+	}
+
+	timezone_name := GetChatTimezone(r.DB, chatID)
+	if timezone_name == "" {
+		timezone_name = "Asia/Jerusalem"
+	}
+
+	timezone, err := time.LoadLocation(timezone_name)
+	if err != nil {
+		return fmt.Sprintf("Error loading timezone: %v", err)
 	}
 
 	// Route to appropriate command handler
@@ -93,20 +105,20 @@ func (r *CommandRouter) Route(prompt string, chatID, attendeeID string) string {
 
 	// Reminder commands
 	case "remind", "r":
-		return RemindCmd(r.DB, prompt, chatID, location)
+		return RemindCmd(r.DB, prompt, chatID, timezone)
 
 	case "reminders", "rems", "todo", "rls":
-		return RemindersCmd(r.DB, chatID)
+		return RemindersCmd(r.DB, chatID, timezone)
 
 	case "snooze":
-		return SnoozeCmd(r.DB, prompt, chatID, location)
+		return SnoozeCmd(r.DB, prompt, chatID, timezone)
 
 	case "done":
 		return DoneCmd(r.DB, prompt, chatID)
 
 	// Scheduled message commands
 	case "send":
-		return SendCmd(r.DB, prompt, chatID, location)
+		return SendCmd(r.DB, prompt, chatID, timezone)
 
 	case "unsend":
 		return UnsendCmd(r.DB, chatID)
