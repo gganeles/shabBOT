@@ -1,5 +1,5 @@
 const chrono = require('chrono-node');
-const msRecognizers = require('@microsoft/recognizers-text-date-time/dist/recognizers-text-date-time.umd.js');
+//const msRecognizers = require('@microsoft/recognizers-text-date-time/dist/recognizers-text-date-time.umd.js');
 
 function parseDate(expression, date) {
     return chrono.parseDate(expression, new Date(date))
@@ -22,7 +22,7 @@ function parse(expression, date) {
     const x = new Date(date);
     // Use literal values instead of Culture/DateTimeOptions to avoid bundling issues
     // Culture.English = "en-us", DateTimeOptions.None = 0
-    const recognizer = msRecognizers.recognizeDateTime(expression, "en-us", 0, x);
+    // const recognizer = msRecognizers.recognizeDateTime(expression, "en-us", 0, x);
     const results = chrono.parse(expression, x, { forwardDate: true });
     if (results && results.length > 0) {
         return results.map(res => {
@@ -31,10 +31,10 @@ function parse(expression, date) {
                 Text: res.text,
                 Index: res.index,
                 Time: parsedDate ? parsedDate.toISOString() : null,
-                MicrosoftResults: JSON.stringify(recognizer)
+                //MicrosoftResults: JSON.stringify(recognizer)
             };
         });
-    } else if (recognizer && recognizer.length > 0) {
+    } /* else if (recognizer && recognizer.length > 0) {
         return recognizer.map(res => {
             let parsedDate = null;
 
@@ -87,7 +87,7 @@ function parse(expression, date) {
                 MicrosoftResults: JSON.stringify(recognizer)
             };
         });
-    } else {
+    } */ else {
         return [];
     }
 
