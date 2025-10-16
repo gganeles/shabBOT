@@ -393,7 +393,9 @@ fn quickshab_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str) -> Stri
     };
 
     use crate::db::schema::quickshab::dsl::{chat_id as qs_chat_id, number, quickshab};
-    use crate::db::schema::quickshab_assignments::dsl::{chat_id as qa_chat_id, quickshab_assignments};
+    use crate::db::schema::quickshab_assignments::dsl::{
+        chat_id as qa_chat_id, quickshab_assignments,
+    };
     use diesel::{delete, insert_into};
 
     let _ = get_or_create_chat(db, chat_id);

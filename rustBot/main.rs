@@ -78,7 +78,8 @@ fn main() {
                                 if ctx.info.source.is_from_me {
                                     return;
                                 }
-                                let mut router = router::CommandRouter::new("db/shabbot.db").unwrap();
+                                let mut router =
+                                    router::CommandRouter::new("db/shabbot.db").unwrap();
                                 let replies = router.parse_multiple_commands(
                                     text,
                                     &ctx.info.source.chat.to_ad_string(),
@@ -137,11 +138,14 @@ fn main() {
 
         // Get the client for the reminder routine before running the bot
         let client_for_reminders = bot.client().clone();
-        
+
         // Spawn reminder routine in background with the client
         tokio::spawn(async move {
-            reminder_routine::start_reminder_routine(client_for_reminders, "db/shabbot.db".to_string())
-                .await;
+            reminder_routine::start_reminder_routine(
+                client_for_reminders,
+                "db/shabbot.db".to_string(),
+            )
+            .await;
         });
         info!("Reminder routine started in background");
 
@@ -149,28 +153,34 @@ fn main() {
         let mut reconnect_attempts = 0;
         const MAX_RECONNECT_ATTEMPTS: u32 = 10;
         const STABLE_CONNECTION_TIME: u64 = 300; // 5 minutes - reset counter after this
-        
+
         loop {
-            info!("Starting bot connection (attempt {})", reconnect_attempts + 1);
-            
+            info!(
+                "Starting bot connection (attempt {})",
+                reconnect_attempts + 1
+            );
+
             let connection_start = tokio::time::Instant::now();
-            
+
             // Run the bot
             let bot_handle = match bot.run().await {
                 Ok(handle) => {
                     info!("✅ Bot connected successfully!");
                     handle
-                },
+                }
                 Err(e) => {
                     error!("❌ Bot failed to start: {}", e);
-                    
+
                     // Exponential backoff: 2s, 4s, 8s, 16s, ... up to 60s
                     reconnect_attempts += 1;
                     if reconnect_attempts >= MAX_RECONNECT_ATTEMPTS {
-                        error!("Max reconnection attempts ({}) reached. Giving up.", MAX_RECONNECT_ATTEMPTS);
+                        error!(
+                            "Max reconnection attempts ({}) reached. Giving up.",
+                            MAX_RECONNECT_ATTEMPTS
+                        );
                         return;
                     }
-                    
+
                     let delay = std::cmp::min(2u64.pow(reconnect_attempts), 60);
                     error!("Reconnecting in {} seconds...", delay);
                     tokio::time::sleep(tokio::time::Duration::from_secs(delay)).await;
@@ -187,28 +197,40 @@ fn main() {
                     error!("Bot connection error: {}", e);
                 }
             }
-            
+
             // Check connection uptime - reset counter if connection was stable
             let uptime = connection_start.elapsed().as_secs();
             if uptime >= STABLE_CONNECTION_TIME {
-                info!("Connection was stable for {} seconds, resetting reconnect counter", uptime);
+                info!(
+                    "Connection was stable for {} seconds, resetting reconnect counter",
+                    uptime
+                );
                 reconnect_attempts = 0;
             } else {
                 reconnect_attempts += 1;
-                info!("Connection only lasted {} seconds (needed {} for reset)", 
-                      uptime, STABLE_CONNECTION_TIME);
+                info!(
+                    "Connection only lasted {} seconds (needed {} for reset)",
+                    uptime, STABLE_CONNECTION_TIME
+                );
             }
-            
+
             // Check if we've exceeded max attempts
             if reconnect_attempts >= MAX_RECONNECT_ATTEMPTS {
-                error!("Max reconnection attempts ({}) reached. Giving up.", MAX_RECONNECT_ATTEMPTS);
+                error!(
+                    "Max reconnection attempts ({}) reached. Giving up.",
+                    MAX_RECONNECT_ATTEMPTS
+                );
                 return;
             }
-            
+
             // Exponential backoff before reconnecting
             let delay = std::cmp::min(2u64.pow(reconnect_attempts), 60);
-            info!("Connection lost. Reconnecting in {} seconds (attempt {}/{})...", 
-                  delay, reconnect_attempts + 1, MAX_RECONNECT_ATTEMPTS);
+            info!(
+                "Connection lost. Reconnecting in {} seconds (attempt {}/{})...",
+                delay,
+                reconnect_attempts + 1,
+                MAX_RECONNECT_ATTEMPTS
+            );
             tokio::time::sleep(tokio::time::Duration::from_secs(delay)).await;
         }
     });
