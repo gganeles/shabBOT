@@ -81,12 +81,12 @@ function parse(expression, date) {
                 }
             }
 
-            return [{
+            return {
                 Text: res.text,
                 Index: res.start,
                 Time: parsedDate ? parsedDate.toISOString() : null,
                 MicrosoftResults: JSON.stringify(recognizer)
-            }];
+            };
         });
     } else {
         return [];

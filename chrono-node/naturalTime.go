@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
+	"strings"
+	"os"
 )
 
 // Parser provides natural language parsing capabilities for time expressions.
@@ -47,11 +49,19 @@ type timeResult struct {
 
 // execBun executes the naturalTime.js script with Bun
 func (p *Parser) execBun(expr string, base time.Time) ([]byte, error) {
-	cmd := exec.Command("bun", p.scriptPath, expr, base.Format(time.RFC3339))
-
+	words := []string{"bun", p.scriptPath, "\""+expr+"\"", base.Format(time.RFC3339)}
+	commandstring := strings.Join(words," ")
+	fmt.Println(commandstring)
+	cmd := exec.Command(commandstring)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+
+    	cmd.Dir = filepath.Dir(p.scriptPath)
+    
+    	// Inherit environment variables
+    	cmd.Env = os.Environ()
+
 
 	err := cmd.Run()
 	if err != nil {
@@ -63,6 +73,7 @@ func (p *Parser) execBun(expr string, base time.Time) ([]byte, error) {
 
 func (p *Parser) Parse(expr string, base time.Time) ([]timeResult, error) {
 	output, err := p.execBun(expr, base)
+	fmt.Println(output)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse expression %q: %w", expr, err)
 	}
