@@ -4,7 +4,6 @@ import (
     "bytes"
     "encoding/json"
     "fmt"
-    "os"
     "os/exec"
     "path/filepath"
     "runtime"
@@ -32,7 +31,8 @@ func New() (*Parser, error) {
 
     // Get the directory containing this file
     dir := filepath.Dir(filename)
-    scriptPath := filepath.Join(dir, "naturalTime.js")
+    // Use compiled binary instead of .js file for better performance
+    scriptPath := filepath.Join(dir, "naturalTime")
 
     return &Parser{
         scriptPath: scriptPath,
@@ -46,29 +46,21 @@ type timeResult struct {
     MicrosoftResults string
 }
 
-// execBun executes the naturalTime.js script with Bun
+// execBun executes the compiled naturalTime binary
 func (p *Parser) execBun(expr string, base time.Time) ([]byte, error) {
     baseStr := base.Format(time.DateTime)
     
-    // CORRECT: Pass each argument separately
-    cmd := exec.Command("bun", p.scriptPath, expr, baseStr)
-    
-    // Debug output
-    fmt.Printf("bun %s %q %s\n", p.scriptPath, expr, baseStr)
+    // Call the compiled binary directly (no bun runtime needed)
+    cmd := exec.Command(p.scriptPath, expr, baseStr)
     
     var stdout, stderr bytes.Buffer
     cmd.Stdout = &stdout
     cmd.Stderr = &stderr
 
-    cmd.Dir = filepath.Dir(p.scriptPath)
-    cmd.Env = os.Environ()
-
     err := cmd.Run()
     if err != nil {
-        return nil, fmt.Errorf("bun execution failed: %w, stderr: %s", err, stderr.String())
+        return nil, fmt.Errorf("execution failed: %w, stderr: %s", err, stderr.String())
     }
-    
-    fmt.Printf("Output: %s\n", stdout.String())
 
     return stdout.Bytes(), nil
 }
