@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -93,7 +94,7 @@ func init() {
 		countryName := strings.TrimSpace(record[7])
 		timezone := strings.TrimSpace(record[16])
 		coordinates := strings.TrimSpace(record[19])
-		countryCode := strings.TrimSpace(record[8]) // Country code
+		countryCode := strings.TrimSpace(record[6]) // Country code
 		if name != "" && timezone != "" && coordinates != "" {
 			geoNamesList = append(geoNamesList, GeoName{
 				Name:        name,
@@ -103,6 +104,36 @@ func init() {
 				CountryCode: countryCode,
 			})
 		}
+	}
+
+	// Sort the list: IL first, then US, then others
+	sort.SliceStable(geoNamesList, func(i, j int) bool {
+		codeI := geoNamesList[i].CountryCode
+		codeJ := geoNamesList[j].CountryCode
+
+		// IL comes first
+		if codeI == "IL" && codeJ != "IL" {
+			return true
+		}
+		if codeI != "IL" && codeJ == "IL" {
+			return false
+		}
+
+		// US comes second
+		if codeI == "US" && codeJ != "US" {
+			return true
+		}
+		if codeI != "US" && codeJ == "US" {
+			return false
+		}
+
+		// Otherwise maintain original order (stable sort)
+		return false
+	})
+
+	// Check to head to see it worked
+	if len(geoNamesList) > 0 {
+		fmt.Printf("First entry after sorting: %v\n", geoNamesList[0].CountryCode)
 	}
 }
 
@@ -155,6 +186,7 @@ func parseTime(s string, timezone *time.Location) (int64, string, error) {
 }
 
 // findGeoLocation searches for a location in the geoNamesList
+// Returns the first match (prioritized by country: IL > US > Others due to sorting)
 func findGeoLocation(location string) *GeoName {
 	if location == "" {
 		return nil
@@ -162,6 +194,7 @@ func findGeoLocation(location string) *GeoName {
 
 	for _, geo := range geoNamesList {
 		if strings.EqualFold(geo.Name, location) {
+			fmt.Printf("Exact match found: %v", geo)
 			return &geo
 		}
 	}

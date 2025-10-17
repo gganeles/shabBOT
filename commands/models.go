@@ -2,6 +2,8 @@ package commands
 
 import (
 	"database/sql"
+	"fmt"
+	"log"
 	"strings"
 )
 
@@ -131,15 +133,32 @@ func GetChatTimezone(db *sql.DB, chatID string) string {
 func SetChatLocation(db *sql.DB, chatID, location string) (string, error) {
 	GetOrCreateChat(db, chatID)
 
-	// Try to find timezone from geoNamesList
-	timezone := "Asia/Jerusalem" // Default
+	// Try to find location in geoNamesList
 	geoLocation := findGeoLocation(location)
-	if geoLocation != nil && geoLocation.Timezone != "" {
+
+	// log.Printf("[DEBUG] findGeoLocation returned: %v", geoLocation)
+
+	// If location not found in geo database, return error
+	if geoLocation == nil {
+		log.Printf("[ERROR] Location '%s' not found in geo database", location)
+		return "", fmt.Errorf("location '%s' not found. Please use a valid city name", location)
+	}
+
+	// Use timezone from geo data, or default if not available
+	timezone := "Asia/Jerusalem"
+	if geoLocation.Timezone != "" {
 		timezone = geoLocation.Timezone
 	}
 
+	// log.Printf("[DEBUG] Using geo location: %s, timezone: %s", geoLocation.Name, timezone)
+
+	// log.Printf("[DEBUG] Executing UPDATE query with location: %s, timezone: %s, chatID: %s", geoLocation.Name, timezone, chatID)
 	_, err := db.Exec(`UPDATE chats SET location = ?, timezone = ? WHERE chat_id = ?`, geoLocation.Name, timezone, chatID)
-	return geoLocation.Name, err
+	if err != nil {
+		log.Printf("[ERROR] UPDATE query failed: %v", err)
+		return "", err
+	}
+	return geoLocation.Name, nil
 }
 
 // Utility function to capitalize first letter
