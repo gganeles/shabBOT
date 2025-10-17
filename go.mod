@@ -9,17 +9,7 @@ require (
 )
 
 require (
-	github.com/dlclark/regexp2 v1.11.4 // indirect
-	github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6 // indirect
-	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
-	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
-	github.com/sho0pi/naturaltime v0.0.2 // indirect
-	github.com/tj/go-naturaldate v1.3.0 // indirect
-)
-
-require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/AlekSi/pointer v1.0.0 // indirect
 	github.com/beeper/argo-go v1.1.2 // indirect
 	github.com/elliotchance/orderedmap/v3 v3.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -28,9 +18,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/nathan-osman/go-sunrise v1.1.0 // indirect
-	github.com/olebedev/when v1.1.0 // direct
 	github.com/petermattis/goid v0.0.0-20250904145737-900bdf8bb490 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.27 // indirect
 	go.mau.fi/libsignal v0.2.1-0.20251004173110-6e0a3f2435ed // indirect
