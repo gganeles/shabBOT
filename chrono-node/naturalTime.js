@@ -20,14 +20,14 @@ function parse(expression, date) {
 // CLI interface
 if (require.main === module) {
     const args = process.argv.slice(2);
-    
+
     if (args.length < 2) {
         console.error('Usage: bun naturalTime.js <expression> <baseDate>');
         process.exit(1);
     }
-    
+
     const [expression, baseDate] = args;
-    
+
     try {
         const result = parse(expression, baseDate);
         console.log(JSON.stringify(result));

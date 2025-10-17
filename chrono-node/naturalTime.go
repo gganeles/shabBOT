@@ -28,11 +28,11 @@ func New() (*Parser, error) {
 	if !ok {
 		return nil, fmt.Errorf("failed to get current file path")
 	}
-	
+
 	// Get the directory containing this file
 	dir := filepath.Dir(filename)
 	scriptPath := filepath.Join(dir, "naturalTime.js")
-	
+
 	return &Parser{
 		scriptPath: scriptPath,
 	}, nil
@@ -48,16 +48,16 @@ type timeResult struct {
 // execBun executes the naturalTime.js script with Bun
 func (p *Parser) execBun(expr string, base time.Time) ([]byte, error) {
 	cmd := exec.Command("bun", p.scriptPath, expr, base.Format(time.RFC3339))
-	
+
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	
+
 	err := cmd.Run()
 	if err != nil {
 		return nil, fmt.Errorf("bun execution failed: %w, stderr: %s", err, stderr.String())
 	}
-	
+
 	return stdout.Bytes(), nil
 }
 
@@ -90,10 +90,10 @@ func (p *Parser) ParseDate(expr string, base time.Time) (*time.Time, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(results) == 0 {
 		return nil, nil
 	}
-	
+
 	return &results[0].Time, nil
 }
