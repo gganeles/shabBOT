@@ -1,5 +1,5 @@
 use chrono::Local;
-use log::{error, info};
+use log::{error, info, warn};
 use qr2term::print_qr;
 use wacore::proto_helpers::MessageExt;
 use wacore::types::events::Event;
@@ -19,7 +19,7 @@ fn main() {
     use whatsapp_rust::bot::Bot;
     use whatsapp_rust::store::sqlite_store::SqliteStore;
 
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("error"))
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn"))
         .format(|buf, record| {
             use std::io::Write;
             writeln!(
@@ -75,6 +75,14 @@ fn main() {
                             };
 
                             if let Some(text) = ctx.message.text_content() {
+                                warn!(
+                                    "📩 Message from: {} | Chat: {} | Is Group: {} | Text: {}",
+                                    ctx.info.source.sender,
+                                    ctx.info.source.chat,
+                                    ctx.info.source.is_group,
+                                    text
+                                );
+                                
                                 if ctx.info.source.is_from_me {
                                     return;
                                 }
@@ -82,37 +90,50 @@ fn main() {
                                     router::CommandRouter::new("db/shabbot.db").unwrap();
                                 let replies = router.parse_multiple_commands(
                                     text,
-                                    &ctx.info.source.chat.to_ad_string(),
-                                    &ctx.info.source.sender.to_ad_string(),
+                                    &ctx.info.source.chat.to_string(),
+                                    &ctx.info.source.sender.to_string(),
                                 );
+                                
+                                warn!("💬 Generated {} replies", replies.len());
                                 for x in replies {
-                                    let ext = wa::message::ExtendedTextMessage {
-                                        text: Some(x.clone()),
-                                        context_info: Some(Box::new(wa::ContextInfo {
-                                            stanza_id: Some(ctx.info.id.clone()),
-                                            participant: Some(
-                                                ctx.info.source.sender.to_ad_string(),
-                                            ),
-                                            quoted_message: Some(Box::new((*ctx.message).clone())),
-                                            ..Default::default()
-                                        })),
+                                    warn!("📤 Sending reply: {}", x);
+                                    
+                                    // Use conversation for both 1:1 and group chats (same as example)
+                                    let message = wa::Message {
+                                        conversation: Some(x.clone()),
                                         ..Default::default()
                                     };
-                                    if let Err(e) = ctx
-                                        .send_message(wa::Message {
-                                            extended_text_message: Some(Box::new(ext)),
-                                            ..Default::default()
-                                        })
-                                        .await
-                                    {
-                                        error!("Failed to send message: {}", e);
+                                    
+                                    // Use ctx.send_message like the example - it handles everything properly
+                                    match ctx.send_message(message.clone()).await {
+                                        Ok(_) => {
+                                            info!("✅ Message sent successfully");
+                                        }
+                                        Err(e) => {
+                                            let error_str = e.to_string();
+                                            error!("❌ Failed to send message: {}", error_str);
+                                            
+                                            // If it's an untrusted identity error, wait and retry once
+                                            if error_str.contains("untrusted identity") {
+                                                warn!("⏳ Untrusted identity error - waiting 2s before retry...");
+                                                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                                                
+                                                match ctx.send_message(message).await {
+                                                    Ok(_) => info!("✅ Message sent successfully on retry"),
+                                                    Err(e) => error!("❌ Retry also failed: {}", e),
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
 
                         Event::UndecryptableMessage(u) => {
-                            error!("Decryption error from: {:?}", u);
+                            error!("🔐 Decryption error for message from: {} (ID: {})", 
+                                u.info.source.sender, u.info.id);
+                            // Don't auto-clean sessions - it doesn't help and causes issues
+                            // The session needs to be established by WhatsApp's protocol
                         }
                         Event::Connected(_) => {
                             info!("✅ Bot connected successfully!");

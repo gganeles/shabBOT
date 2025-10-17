@@ -80,8 +80,19 @@ pub async fn cleanup_user_sessions(
 /// Extract the phone number from a JID string
 /// Examples: "972587120601.0" -> "972587120601"
 ///          "972587120601" -> "972587120601"
+///          "972587120601:54@s.whatsapp.net" -> "972587120601"
+///          "972587120601@s.whatsapp.net" -> "972587120601"
 pub fn extract_phone_number(jid: &str) -> String {
-    jid.split('.').next().unwrap_or(jid).to_string()
+    // First split on @ to remove the server part
+    let user_part = jid.split('@').next().unwrap_or(jid);
+    // Then split on : to remove the device ID
+    let phone_part = user_part.split(':').next().unwrap_or(user_part);
+    // Then split on . to handle old format
+    phone_part
+        .split('.')
+        .next()
+        .unwrap_or(phone_part)
+        .to_string()
 }
 
 #[cfg(test)]
@@ -93,5 +104,17 @@ mod tests {
         assert_eq!(extract_phone_number("972587120601.0"), "972587120601");
         assert_eq!(extract_phone_number("972587120601"), "972587120601");
         assert_eq!(extract_phone_number("1234567890.54"), "1234567890");
+        assert_eq!(
+            extract_phone_number("972587120601:54@s.whatsapp.net"),
+            "972587120601"
+        );
+        assert_eq!(
+            extract_phone_number("972587120601@s.whatsapp.net"),
+            "972587120601"
+        );
+        assert_eq!(
+            extract_phone_number("1234567890:0@s.whatsapp.net"),
+            "1234567890"
+        );
     }
 }

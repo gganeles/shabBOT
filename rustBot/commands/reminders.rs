@@ -5,7 +5,7 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 /// Format relative time like "today", "tomorrow", "in 3 days", "next week", etc.
-fn format_relative_time<Tz1, Tz2>(target_time: &DateTime<Tz1>, now: &DateTime<Tz2>) -> String 
+fn format_relative_time<Tz1, Tz2>(target_time: &DateTime<Tz1>, now: &DateTime<Tz2>) -> String
 where
     Tz1: chrono::TimeZone,
     Tz2: chrono::TimeZone,
@@ -14,34 +14,34 @@ where
     let target_naive = target_time.naive_utc();
     let now_naive = now.naive_utc();
     let diff = target_naive.signed_duration_since(now_naive);
-    
+
     // For past times
     if diff.num_seconds() < 0 {
         return String::new();
     }
-    
+
     // Same day - compare using naive dates
     if target_naive.date() == now_naive.date() {
         return "today".to_string();
     }
-    
+
     // Tomorrow
     let tomorrow_naive = now_naive.date() + chrono::Duration::days(1);
     if target_naive.date() == tomorrow_naive {
         return "tomorrow".to_string();
     }
-    
+
     // Within the next week (2-7 days)
     let days = diff.num_days();
     if days >= 2 && days <= 7 {
         return format!("in {} days", days);
     }
-    
+
     // Next week (8-14 days)
     if days >= 8 && days <= 14 {
         return "next week".to_string();
     }
-    
+
     // Weeks (15-60 days)
     if days >= 15 && days <= 60 {
         let weeks = (days + 3) / 7; // Round to nearest week
@@ -50,7 +50,7 @@ where
         }
         return format!("in {} weeks", weeks);
     }
-    
+
     // Months
     if days >= 61 && days <= 365 {
         let months = (days + 15) / 30; // Rough month approximation
@@ -59,7 +59,7 @@ where
         }
         return format!("in {} months", months);
     }
-    
+
     // Years
     if days > 365 {
         let years = (days + 180) / 365;
@@ -68,7 +68,7 @@ where
         }
         return format!("in {} years", years);
     }
-    
+
     String::new()
 }
 
@@ -95,19 +95,19 @@ pub fn remind_cmd(
     let id = Uuid::new_v4().to_string();
 
     // Try to extract datetime from the text with timezone awareness
-    let (message, reminder_time, reminder_type) = match extract_datetime_from_text(&full_text, timezone)
-    {
-        Ok((remaining_text, datetime)) => {
-            // Found a datetime - create timed reminder (already cleaned by extract_datetime_from_text)
-            let timestamp = datetime.timestamp() as i32;
-            (remaining_text, timestamp, "timed")
-        }
-        Err(_) => {
-            // No datetime found - create timeless reminder, clean the text
-            let cleaned = clean_reminder_text(&full_text);
-            (cleaned, 0, "timeless")
-        }
-    };
+    let (message, reminder_time, reminder_type) =
+        match extract_datetime_from_text(&full_text, timezone) {
+            Ok((remaining_text, datetime)) => {
+                // Found a datetime - create timed reminder (already cleaned by extract_datetime_from_text)
+                let timestamp = datetime.timestamp() as i32;
+                (remaining_text, timestamp, "timed")
+            }
+            Err(_) => {
+                // No datetime found - create timeless reminder, clean the text
+                let cleaned = clean_reminder_text(&full_text);
+                (cleaned, 0, "timeless")
+            }
+        };
 
     if message.is_empty() || message == "nothing" {
         return "Error: reminder text cannot be empty".to_string();
@@ -131,7 +131,7 @@ pub fn remind_cmd(
         // Parse the timezone to show confirmation in user's local time
         use chrono_tz::Tz;
         let tz: Tz = timezone.parse().unwrap_or(chrono_tz::Asia::Jerusalem);
-        
+
         let dt = DateTime::<Utc>::from_timestamp(reminder_time as i64, 0)
             .unwrap_or_else(|| DateTime::<Utc>::from_timestamp(0, 0).unwrap())
             .with_timezone(&tz);
@@ -146,11 +146,11 @@ pub fn reminders_cmd(db: &mut SqliteConnection, chat_id: &str, timezone: &str) -
     use crate::db::schema::reminders::dsl::{
         chat_id as r_chat_id, message as r_message, reminders, time as r_time, type_,
     };
-    
+
     // Parse the timezone
     use chrono_tz::Tz;
     let tz: Tz = timezone.parse().unwrap_or(chrono_tz::Asia::Jerusalem);
-    
+
     // Get current time
     let now_utc = chrono::Utc::now();
     let now_in_tz = now_utc.with_timezone(&tz);
@@ -174,11 +174,11 @@ pub fn reminders_cmd(db: &mut SqliteConnection, chat_id: &str, timezone: &str) -
         .map(|(message, time)| {
             let dt = chrono::DateTime::from_timestamp(*time as i64, 0)
                 .unwrap_or_else(|| chrono::DateTime::from_timestamp(0, 0).unwrap())
-                .with_timezone(&tz);  // Convert to user's timezone
-            
+                .with_timezone(&tz); // Convert to user's timezone
+
             let time_str = dt.format("%a @ %I:%M %p").to_string();
             let relative_str = format_relative_time(&dt, &now_in_tz);
-            
+
             // Check if past
             if (*time as i64) < now_timestamp {
                 format!("  • {} - {} - past", message, time_str)
@@ -244,7 +244,8 @@ pub fn snooze_cmd(
     let (new_time, search_query) = match extract_datetime_from_text(&full_text, timezone) {
         Ok((remaining, dt)) => (dt, remaining),
         Err(_) => {
-            return "Could not parse snooze duration. Try something like '10 minutes' or '2 hours'".to_string();
+            return "Could not parse snooze duration. Try something like '10 minutes' or '2 hours'"
+                .to_string();
         }
     };
 
@@ -380,7 +381,8 @@ pub fn done_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str) -> Strin
         let matching_ids = what_keys(&search_query, &search_objects);
 
         if matching_ids.is_empty() {
-            return "Could not find matching reminder(s). Try: !done or !done [reminder text]".to_string();
+            return "Could not find matching reminder(s). Try: !done or !done [reminder text]"
+                .to_string();
         }
         matching_ids
     } else {

@@ -75,12 +75,12 @@ fn load_geonames_from_file(file_path: &str) -> Result<Vec<GeoName>, Box<dyn std:
             continue;
         }
 
-        // Column 0 is "Geoname ID", Column 2 is "ASCII Name", column 7 is "Country name EN",
-        // column 8 is "Country code", column 16 is "Timezone", column 19 is "Coordinates"
+        // Column 0 is "Geoname ID", Column 2 is "ASCII Name", column 6 is "Country code",
+        // column 7 is "Country name EN", column 16 is "Timezone", column 19 is "Coordinates"
         let geoname_id = record.get(0).unwrap_or("").trim().to_string();
         let name = record.get(2).unwrap_or("").trim().to_string();
+        let country_code = record.get(6).unwrap_or("").trim().to_string();
         let country_name = record.get(7).unwrap_or("").trim().to_string();
-        let country_code = record.get(8).unwrap_or("").trim().to_string();
         let timezone = record.get(16).unwrap_or("").trim().to_string();
         let coordinates = record.get(19).unwrap_or("").trim().to_string();
 
@@ -97,6 +97,41 @@ fn load_geonames_from_file(file_path: &str) -> Result<Vec<GeoName>, Box<dyn std:
                 country_name,
                 country_code,
             });
+        }
+    }
+
+    // Sort with Israel first, then USA, then the rest
+    geonames.sort_by(|a, b| {
+        let a_priority = match a.country_code.as_str() {
+            "IL" => 0, // Israel first
+            "US" => 1, // USA second
+            _ => 2,    // Everything else
+        };
+        let b_priority = match b.country_code.as_str() {
+            "IL" => 0,
+            "US" => 1,
+            _ => 2,
+        };
+
+        // First sort by priority, then by name within each priority
+        a_priority.cmp(&b_priority).then(a.name.cmp(&b.name))
+    });
+
+    // Log some statistics about the sorting
+    let il_count = geonames.iter().filter(|g| g.country_code == "IL").count();
+    let us_count = geonames.iter().filter(|g| g.country_code == "US").count();
+    log::info!(
+        "Geonames sorted: {} Israel cities, {} USA cities, {} total",
+        il_count,
+        us_count,
+        geonames.len()
+    );
+
+    // Log first few entries to verify sorting
+    if !geonames.is_empty() {
+        log::debug!("First 3 geonames after sorting:");
+        for (i, geo) in geonames.iter().take(3).enumerate() {
+            log::debug!("  {}: {} ({})", i, geo.name, geo.country_code);
         }
     }
 
@@ -154,6 +189,12 @@ pub fn find_geo_location(location: &str) -> Option<GeoName> {
     // Search for exact match (case-insensitive)
     for geo in geonames {
         if geo.name.to_lowercase() == location_lower {
+            log::debug!(
+                "Found location '{}' (country: {}, code: {})",
+                geo.name,
+                geo.country_name,
+                geo.country_code
+            );
             return Some(geo.clone());
         }
     }

@@ -1,71 +1,40 @@
 package chrononode
 
 import (
-	_ "embed"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"time"
-
-	"github.com/dop251/goja"
 )
 
-//go:embed dist/naturalTime.bundle.js
-var naturaltimeJavaScript string
-
 // Parser provides natural language parsing capabilities for time expressions.
-// It uses a JavaScript implementation embedded in the Go binary.
+// It uses a JavaScript implementation via Bun runtime.
 type Parser struct {
-	runtime        *goja.Runtime
-	parseRangeFunc goja.Callable
-	parseDateFunc  goja.Callable
-	thisContext    goja.Value
-	parseFunc      goja.Callable
+	scriptPath string
 }
 
 // New creates a new natural time expression parser.
-// It initializes the JavaScript runtime and prepares the parsing functions.
+// It determines the path to the naturalTime.js script.
 //
 // Returns:
 //   - An initialized Parser
 //   - An error if initialization fails
 func New() (*Parser, error) {
-	runtime := goja.New()
-
-	// Compile and run the embedded JavaScript
-	program, err := goja.Compile("naturaltime.js", naturaltimeJavaScript, false)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile naturaltime JavaScript: %w", err)
-	}
-
-	_, err = runtime.RunProgram(program)
-	if err != nil {
-		return nil, fmt.Errorf("failed to run naturaltime JavaScript: %w", err)
-	}
-
-	// Extract the JavaScript object and its methods
-	jsObject := runtime.Get("naturaltime").ToObject(runtime)
-
-	parseRangeFunc, ok := goja.AssertFunction(jsObject.Get("parseRange"))
+	// Get the directory of this Go file
+	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
-		return nil, fmt.Errorf("failed to get 'parseRange' function from JavaScript")
+		return nil, fmt.Errorf("failed to get current file path")
 	}
-
-	parseDateFunc, ok := goja.AssertFunction(jsObject.Get("parseDate"))
-	if !ok {
-		return nil, fmt.Errorf("failed to get 'parseDate' function from JavaScript")
-	}
-
-	parseFunc, ok := goja.AssertFunction(jsObject.Get("parse"))
-	if !ok {
-		return nil, fmt.Errorf("failed to get 'parse' function from JavaScript")
-	}
-
+	
+	// Get the directory containing this file
+	dir := filepath.Dir(filename)
+	scriptPath := filepath.Join(dir, "naturalTime.js")
+	
 	return &Parser{
-		thisContext:    runtime.ToValue(map[string]interface{}{}),
-		runtime:        runtime,
-		parseRangeFunc: parseRangeFunc,
-		parseDateFunc:  parseDateFunc,
-		parseFunc:      parseFunc,
+		scriptPath: scriptPath,
 	}, nil
 }
 
@@ -76,21 +45,30 @@ type timeResult struct {
 	MicrosoftResults string
 }
 
-func (p *Parser) Parse(expr string, base time.Time) ([]timeResult, error) {
-	result, err := p.parseFunc(p.thisContext, p.runtime.ToValue(expr), p.runtime.ToValue(base.Format(time.DateTime)))
+// execBun executes the naturalTime.js script with Bun
+func (p *Parser) execBun(expr string, base time.Time) ([]byte, error) {
+	cmd := exec.Command("bun", p.scriptPath, expr, base.Format(time.RFC3339))
+	
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	
+	err := cmd.Run()
+	if err != nil {
+		return nil, fmt.Errorf("bun execution failed: %w, stderr: %s", err, stderr.String())
+	}
+	
+	return stdout.Bytes(), nil
+}
 
+func (p *Parser) Parse(expr string, base time.Time) ([]timeResult, error) {
+	output, err := p.execBun(expr, base)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse expression %q: %w", expr, err)
 	}
 
-	// Convert JavaScript result to Go
-	jsonBytes, err := json.Marshal(result.Export())
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal results for expression %q: %w", expr, err)
-	}
-
 	var timeResults []timeResult
-	err = json.Unmarshal(jsonBytes, &timeResults)
+	err = json.Unmarshal(output, &timeResults)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal results for expression %q: %w", expr, err)
 	}
@@ -98,6 +76,7 @@ func (p *Parser) Parse(expr string, base time.Time) ([]timeResult, error) {
 }
 
 // ParseDate parses a natural language date expression and returns the corresponding time.
+// It returns the first parsed time from the Parse function.
 //
 // Parameters:
 //   - expr: The natural language expression to parse
@@ -107,17 +86,14 @@ func (p *Parser) Parse(expr string, base time.Time) ([]timeResult, error) {
 //   - A pointer to the parsed time.Time, or nil if the expression could not be parsed
 //   - An error if parsing fails
 func (p *Parser) ParseDate(expr string, base time.Time) (*time.Time, error) {
-	result, err := p.parseDateFunc(p.thisContext, p.runtime.ToValue(expr), p.runtime.ToValue(base.Format(time.RFC3339)))
+	results, err := p.Parse(expr, base)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse date expression %q: %w", expr, err)
+		return nil, err
 	}
-
-	switch parsedValue := result.Export().(type) {
-	case time.Time:
-		return &parsedValue, nil
-	case nil:
+	
+	if len(results) == 0 {
 		return nil, nil
-	default:
-		return nil, fmt.Errorf("unexpected result type when parsing date expression %q", expr)
 	}
+	
+	return &results[0].Time, nil
 }

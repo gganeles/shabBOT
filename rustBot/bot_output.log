@@ -1,0 +1,275 @@
+warning: function `help_cmd` is never used
+   --> router.rs:176:4
+    |
+176 | fn help_cmd(_prompt: &str) -> String {
+    |    ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `docs_cmd` is never used
+   --> router.rs:188:4
+    |
+188 | fn docs_cmd() -> String {
+    |    ^^^^^^^^
+
+warning: function `count_cmd` is never used
+   --> router.rs:192:4
+    |
+192 | fn count_cmd() -> String {
+    |    ^^^^^^^^^
+
+warning: function `needs_cmd` is never used
+   --> router.rs:200:4
+    |
+200 | fn needs_cmd(_prompt: &str) -> String {
+    |    ^^^^^^^^^
+
+warning: function `fast_cmd` is never used
+   --> router.rs:206:4
+    |
+206 | fn fast_cmd(db: &mut SqliteConnection, chat_id: &str) -> String {
+    |    ^^^^^^^^
+
+warning: function `start_cmd` is never used
+   --> router.rs:227:4
+    |
+227 | fn start_cmd(prompt: &str) -> String {
+    |    ^^^^^^^^^
+
+warning: function `end_cmd` is never used
+   --> router.rs:231:4
+    |
+231 | fn end_cmd() -> String {
+    |    ^^^^^^^
+
+warning: function `shablocation_cmd` is never used
+   --> router.rs:239:4
+    |
+239 | fn shablocation_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str) -> String {
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `shabtimes_cmd` is never used
+   --> router.rs:265:4
+    |
+265 | fn shabtimes_cmd(db: &mut SqliteConnection, _prompt: &str, chat_id: &str) -> String {
+    |    ^^^^^^^^^^^^^
+
+warning: function `chagtimes_cmd` is never used
+   --> router.rs:273:4
+    |
+273 | fn chagtimes_cmd(db: &mut SqliteConnection, _prompt: &str, chat_id: &str) -> String {
+    |    ^^^^^^^^^^^^^
+
+warning: function `needs_number` is never used
+   --> router.rs:285:4
+    |
+285 | fn needs_number(n: i32) -> HashMap<String, i32> {
+    |    ^^^^^^^^^^^^
+
+warning: function `format_quickshab` is never used
+   --> router.rs:312:4
+    |
+312 | fn format_quickshab(db: &mut SqliteConnection, chat_id: &str) -> String {
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `quickshab_cmd` is never used
+   --> router.rs:383:4
+    |
+383 | fn quickshab_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str) -> String {
+    |    ^^^^^^^^^^^^^
+
+warning: function `update_number_cmd` is never used
+   --> router.rs:423:4
+    |
+423 | fn update_number_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str) -> String {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `show_cmd` is never used
+   --> router.rs:461:4
+    |
+461 | fn show_cmd(db: &mut SqliteConnection, chat_id: &str) -> String {
+    |    ^^^^^^^^
+
+warning: function `bring_cmd` is never used
+   --> router.rs:487:4
+    |
+487 | fn bring_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str, attendee_id: &str) -> String {
+    |    ^^^^^^^^^
+
+warning: function `assign_cmd` is never used
+   --> router.rs:529:4
+    |
+529 | fn assign_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str) -> String {
+    |    ^^^^^^^^^^
+
+warning: function `unbring_cmd` is never used
+   --> router.rs:572:4
+    |
+572 | fn unbring_cmd(db: &mut SqliteConnection, chat_id: &str, attendee_id: &str) -> String {
+    |    ^^^^^^^^^^^
+
+warning: function `unassign_cmd` is never used
+   --> router.rs:611:4
+    |
+611 | fn unassign_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str) -> String {
+    |    ^^^^^^^^^^^^
+
+warning: function `shop_cmd` is never used
+   --> router.rs:662:4
+    |
+662 | fn shop_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str) -> String {
+    |    ^^^^^^^^
+
+warning: function `shoplist_cmd` is never used
+   --> router.rs:750:4
+    |
+750 | fn shoplist_cmd(db: &mut SqliteConnection, chat_id: &str) -> String {
+    |    ^^^^^^^^^^^^
+
+warning: function `unshop_cmd` is never used
+   --> router.rs:783:4
+    |
+783 | fn unshop_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str) -> String {
+    |    ^^^^^^^^^^
+
+warning: function `remind_cmd` is never used
+   --> router.rs:862:4
+    |
+862 | fn remind_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str, _timezone: &str) -> String {
+    |    ^^^^^^^^^^
+
+warning: function `reminders_cmd` is never used
+   --> router.rs:899:4
+    |
+899 | fn reminders_cmd(db: &mut SqliteConnection, chat_id: &str, _timezone: &str) -> String {
+    |    ^^^^^^^^^^^^^
+
+warning: function `snooze_cmd` is never used
+   --> router.rs:963:4
+    |
+963 | fn snooze_cmd(
+    |    ^^^^^^^^^^
+
+warning: function `done_cmd` is never used
+   --> router.rs:972:4
+    |
+972 | fn done_cmd(db: &mut SqliteConnection, prompt: &str, chat_id: &str) -> String {
+    |    ^^^^^^^^
+
+warning: function `send_cmd` is never used
+    --> router.rs:1013:4
+     |
+1013 | fn send_cmd(_db: &mut SqliteConnection, _prompt: &str, _chat_id: &str, _timezone: &str) -> String {
+     |    ^^^^^^^^
+
+warning: function `unsend_cmd` is never used
+    --> router.rs:1017:4
+     |
+1017 | fn unsend_cmd(db: &mut SqliteConnection, chat_id: &str) -> String {
+     |    ^^^^^^^^^^
+
+warning: function `scheduled_cmd` is never used
+    --> router.rs:1041:4
+     |
+1041 | fn scheduled_cmd(db: &mut SqliteConnection, chat_id: &str) -> String {
+     |    ^^^^^^^^^^^^^
+
+warning: crate `rustWABot` should have a snake case name
+  |
+  = help: convert the identifier to snake case: `rust_wabot`
+  = note: `#[warn(non_snake_case)]` on by default
+
+warning: `rustWABot` (lib) generated 30 warnings
+   Compiling rustWABot v0.1.0 (/home/gabe/code/shabBOT/rustBot)
+warning: variants `Eval`, `RunFile`, and `Ping` are never constructed
+  --> deno_client.rs:21:5
+   |
+19 | pub enum DenoRequest {
+   |          ----------- variants in this enum
+20 |     #[serde(rename = "eval")]
+21 |     Eval { code: String },
+   |     ^^^^
+22 |     #[serde(rename = "run_file")]
+23 |     RunFile { path: String },
+   |     ^^^^^^^
+...
+30 |     Ping,
+   |     ^^^^
+   |
+   = note: `DenoRequest` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+
+warning: methods `eval`, `run_file`, and `ping` are never used
+   --> deno_client.rs:92:12
+    |
+ 46 | impl DenoRunner {
+    | --------------- methods in this implementation
+...
+ 92 |     pub fn eval(&mut self, code: &str) -> Result<String> {
+    |            ^^^^
+...
+104 |     pub fn run_file(&mut self, path: &str) -> Result<String> {
+    |            ^^^^^^^^
+...
+116 |     pub fn ping(&mut self) -> Result<bool> {
+    |            ^^^^
+
+warning: function `cleanup_old_reminders` is never used
+   --> reminder_routine.rs:129:14
+    |
+129 | pub async fn cleanup_old_reminders(db_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    |              ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `help_cmd` is never used
+   --> router.rs:176:4
+    |
+176 | fn help_cmd(_prompt: &str) -> String {
+    |    ^^^^^^^^
+
+warning: field `coordinates` is never read
+  --> utils.rs:14:9
+   |
+10 | pub struct GeoName {
+   |            ------- field in this struct
+...
+14 |     pub coordinates: String,
+   |         ^^^^^^^^^^^
+   |
+   = note: `GeoName` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `index` is never read
+  --> utils.rs:24:9
+   |
+21 | pub struct SearchObject {
+   |            ------------ field in this struct
+...
+24 |     pub index: usize,
+   |         ^^^^^
+   |
+   = note: `SearchObject` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: function `parse_int` is never used
+   --> utils.rs:147:8
+    |
+147 | pub fn parse_int(s: &str, default: i32) -> i32 {
+    |        ^^^^^^^^^
+
+warning: `rustWABot` (bin "rustWABot") generated 35 warnings (28 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.41s
+     Running `target/debug/rustWABot`
+13:51:35 [WARN ] [Client] - TODO: Implement handler for <chatstate>
+13:51:36 [WARN ] [whatsapp_rust::message] - Gracefully failing decryption for msg from 972587120601:54@s.whatsapp.net due to missing session. This is common during offline sync. Dispatching UndecryptableMessage event.
+13:51:36 [WARN ] [whatsapp_rust::message] - Message 3EB0CDEB7E0A7D124A2F36 from 972587120601:54@s.whatsapp.net failed to decrypt and has no group content. Dispatching UndecryptableMessage event.
+13:51:36 [ERROR] [rustWABot] - 🔐 Decryption error for message from: 972587120601:54@s.whatsapp.net (ID: 3EB0CDEB7E0A7D124A2F36)
+13:51:36 [ERROR] [rustWABot] - 🔐 Decryption error for message from: 972587120601:54@s.whatsapp.net (ID: 3EB0CDEB7E0A7D124A2F36)
+13:51:39 [WARN ] [Client] - TODO: Implement handler for <chatstate>
+13:51:42 [WARN ] [rustWABot] - 📩 Message from: 9204232364276:54@lid | Chat: 120363402104651455@g.us | Is Group: true | Text: !shls
+13:51:42 [WARN ] [rustWABot] - 💬 Generated 1 replies
+13:51:42 [WARN ] [rustWABot] - 📤 Attempting to send reply: Shopping list:
+  1.  coat
+13:51:42 [WARN ] [rustWABot] - 🔍 Chat: 120363402104651455@g.us | Sender: 9204232364276:54@lid | Is Group: true | From Me: false
+13:51:42 [WARN ] [rustWABot] - 🔍 Message to send: Message { conversation: Some("Shopping list:\n  1.  coat"), sender_key_distribution_message: None, image_message: None, contact_message: None, location_message: None, extended_text_message: None, document_message: None, audio_message: None, video_message: None, call: None, chat: None, protocol_message: None, contacts_array_message: None, highly_structured_message: None, fast_ratchet_key_sender_key_distribution_message: None, send_payment_message: None, live_location_message: None, request_payment_message: None, decline_payment_request_message: None, cancel_payment_request_message: None, template_message: None, sticker_message: None, group_invite_message: None, template_button_reply_message: None, product_message: None, device_sent_message: None, message_context_info: None, list_message: None, view_once_message: None, order_message: None, list_response_message: None, ephemeral_message: None, invoice_message: None, buttons_message: None, buttons_response_message: None, payment_invite_message: None, interactive_message: None, reaction_message: None, sticker_sync_rmr_message: None, interactive_response_message: None, poll_creation_message: None, poll_update_message: None, keep_in_chat_message: None, document_with_caption_message: None, request_phone_number_message: None, view_once_message_v2: None, enc_reaction_message: None, edited_message: None, view_once_message_v2_extension: None, poll_creation_message_v2: None, scheduled_call_creation_message: None, group_mentioned_message: None, pin_in_chat_message: None, poll_creation_message_v3: None, scheduled_call_edit_message: None, ptv_message: None, bot_invoke_message: None, call_log_messsage: None, message_history_bundle: None, enc_comment_message: None, bcall_message: None, lottie_sticker_message: None, event_message: None, enc_event_response_message: None, comment_message: None, newsletter_admin_invite_message: None, placeholder_message: None, secret_encrypted_message: None, album_message: None, event_cover_image: None, sticker_pack_message: None, status_mention_message: None, poll_result_snapshot_message: None, poll_creation_option_image_message: None, associated_child_message: None, group_status_mention_message: None, poll_creation_message_v4: None, poll_creation_message_v5: None, status_add_yours: None, group_status_message: None, rich_response_message: None, status_notification_message: None, limit_sharing_message: None, bot_task_message: None, question_message: None, message_history_notice: None }
+13:51:42 [WARN ] [rustWABot] - 🔍 Timeout completed, checking result...
+13:51:42 [WARN ] [rustWABot] - ✅ Message sent successfully! ID: 3EB0A4E97DA83227F1A5AF
+13:51:52 [WARN ] [Client] - Received <xmlstreamend/>, treating as disconnect.
+13:51:52 [WARN ] [whatsapp_rust::client] - Message loop exited gracefully.
