@@ -22,7 +22,7 @@ func ExerciseCMD(db *sql.DB, prompt string, chatID string, attendeeName string) 
 			`, chatID, attendeeName, number, number)
 
 		if err != nil {
-			return "Error ticking exercise counter"
+			return "Error ticking exercise counter: " + err.Error()
 		}
 
 		return numberStr + " minutes have been added to your time.\n\nCurrent Standings:\n" + GetExerciseResults(db, chatID)
