@@ -23,7 +23,7 @@ func NewCommandRouter(db *sql.DB) *CommandRouter {
 // prompt: The full message text (including !)
 // chatID: The WhatsApp chat/group ID
 // attendeeID: The sender's WhatsApp ID/phone number
-func (r *CommandRouter) Route(prompt string, chatID, attendeeID string) string {
+func (r *CommandRouter) Route(prompt string, evtInfo types.MessageInfo) string {
 	// Check if message starts with !
 	if !strings.HasPrefix(prompt, "!") {
 		return ""
@@ -38,6 +38,10 @@ func (r *CommandRouter) Route(prompt string, chatID, attendeeID string) string {
 	}
 
 	cmd := strings.ToLower(args[0])
+
+	chatID := evtInfo.Chat.String()
+	attendeeID := evtInfo.Sender.String()
+	attendeeName := evtInfo.PushName
 
 	// Get location for commands that need it
 	location, _ := GetChatLocation(r.DB, chatID)
@@ -139,13 +143,15 @@ func (r *CommandRouter) Route(prompt string, chatID, attendeeID string) string {
 	case "end":
 		return EndCmd()
 
+	case "x", "exer", "exercise":
+		return ExerciseCMD(r.DB, prompt, chatID, attendeeName)
 	default:
 		return "" // Unknown command, no response
 	}
 }
 
 // ParseMultipleCommands handles messages with multiple commands separated by newlines
-func (r *CommandRouter) ParseMultipleCommands(message string, chatID, attendeeID types.JID) []string {
+func (r *CommandRouter) ParseMultipleCommands(message string, evtInfo types.MessageInfo) []string {
 	// Split by newlines and spaces followed by !
 	lines := strings.Split(message, "\n")
 	var responses []string
@@ -163,7 +169,7 @@ func (r *CommandRouter) ParseMultipleCommands(message string, chatID, attendeeID
 				part = "!" + part
 			}
 
-			response := r.Route(part, chatID.String(), attendeeID.String())
+			response := r.Route(part, evtInfo)
 			if response != "" {
 				responses = append(responses, response)
 			}

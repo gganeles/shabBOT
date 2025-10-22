@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"shabBOT/commands"
 	"time"
 
 	"go.mau.fi/whatsmeow"
@@ -22,6 +23,72 @@ func timeRoutine(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
 		cleanupOldReminders(db)
 		// Example scheduled message at 18:19:00
 		eighteenNineteen(client, ctx)
+
+		checkAndSendExerciseResults(client, db, ctx)
+	}
+}
+
+func checkAndSendExerciseResults(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
+
+	rows, err := db.Query(`
+		SELECT DISTINCT 
+			e.chat_id, c.timezone 
+		FROM 
+			exercise_counter AS e
+		JOIN
+			chats as c ON e.chat_id = c.chat_id	
+		`)
+
+	if err != nil {
+		fmt.Printf("Error querying exercise counters: %v\n", err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var chatID string
+		var timezoneName string
+		rows.Scan(&chatID, &timezoneName)
+
+		timezone, err := time.LoadLocation(timezoneName)
+		if err != nil {
+			fmt.Printf("Error loading timezone for chat %s: %v\n", chatID, err)
+			continue
+		}
+
+		now := time.Now().In(timezone)
+
+		if time.Sunday != now.Weekday() {
+			continue
+		}
+
+		hour := now.Hour()
+		minute := now.Minute()
+		seconds := now.Second()
+		jid, err := types.ParseJID(chatID)
+
+		if err != nil {
+			fmt.Printf("Error parsing chat ID %s: %v\n", chatID, err)
+			continue
+		}
+
+		if hour == 9 && minute == 0 && seconds < 5 {
+			// Send exercise results message
+			messageText := "🏋️‍♂️ Exercise Results:\n\n" + commands.GetExerciseResults(db, chatID)
+			_, err = client.SendMessage(ctx, jid, &waE2E.Message{
+				Conversation: &messageText,
+			})
+
+			if err != nil {
+				fmt.Printf("Error sending exercise results to %s: %v\n", chatID, err)
+			}
+
+			_, err = db.Exec(`UPDATE exercise_counter SET value = 0 WHERE chat_id = ?`, chatID)
+
+			if err != nil {
+				fmt.Printf("Error resetting exercise counter for %s: %v\n", chatID, err)
+			}
+		}
 	}
 }
 
@@ -167,7 +234,8 @@ func cleanupOldReminders(db *sql.DB) {
 }
 
 func eighteenNineteen(client *whatsmeow.Client, ctx context.Context) bool {
-	now := time.Now()
+	haifaTZ, _ := time.LoadLocation("Asia/Jerusalem")
+	now := time.Now().In(haifaTZ)
 	hour := now.Hour()
 	minute := now.Minute()
 	seconds := now.Second()

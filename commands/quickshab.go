@@ -22,21 +22,31 @@ var typeList = []string{
 // needsNumber calculates how many of each category is needed based on number of people
 func needsNumber(n int) map[string]int {
 	return map[string]int{
-		"main":     int(math.Ceil(float64(n+1) / 4)),
-		"side":     int(math.Ceil(float64(n) / 6)),
-		"plastics": func() int { if n > 5 { return int(math.Ceil(float64(n) / 20)) }; return 0 }(),
-		"drinks":   func() int { if n > 5 { return int(math.Ceil(float64(n) / 12)) }; return 0 }(),
-		"wine":     int(math.Ceil(float64(n) / 8)),
-		"challah":  int(math.Ceil(float64(n) / 10)),
-		"dips":     int(math.Ceil(float64(n+1) / 12)),
-		"dessert":  int(math.Ceil(float64(n-5) / 8)),
+		"main": int(math.Ceil(float64(n+1) / 4)),
+		"side": int(math.Ceil(float64(n) / 6)),
+		"plastics": func() int {
+			if n > 5 {
+				return int(math.Ceil(float64(n) / 20))
+			}
+			return 0
+		}(),
+		"drinks": func() int {
+			if n > 5 {
+				return int(math.Ceil(float64(n) / 12))
+			}
+			return 0
+		}(),
+		"wine":    int(math.Ceil(float64(n) / 8)),
+		"challah": int(math.Ceil(float64(n) / 10)),
+		"dips":    int(math.Ceil(float64(n+1) / 12)),
+		"dessert": int(math.Ceil(float64(n-5) / 8)),
 	}
 }
 
 // QuickShabCmd initializes a quickshab meal planning tracker
 func QuickShabCmd(db *sql.DB, prompt, chatID string) string {
 	args := parseArgs(prompt)
-	
+
 	if len(args) < 2 {
 		return "Command syntax: !quickshab [number of people]"
 	}
@@ -51,7 +61,7 @@ func QuickShabCmd(db *sql.DB, prompt, chatID string) string {
 
 	// Clear existing quickshab data
 	db.Exec(`DELETE FROM quickshab_assignments WHERE chat_id = ?`, chatID)
-	
+
 	// Create or update quickshab
 	_, err = db.Exec(`
 		INSERT INTO quickshab (chat_id, number) VALUES (?, ?)
@@ -68,7 +78,7 @@ func QuickShabCmd(db *sql.DB, prompt, chatID string) string {
 // UpdateNumberCmd updates the number of people for quickshab
 func UpdateNumberCmd(db *sql.DB, prompt, chatID string) string {
 	args := parseArgs(prompt)
-	
+
 	if len(args) < 2 {
 		return "Command syntax: !update [number of people]"
 	}
@@ -104,7 +114,7 @@ func formatQuickShab(db *sql.DB, chatID string) string {
 	}
 
 	needs := needsNumber(numPeople)
-	
+
 	// Get assignments
 	rows, err := db.Query(`
 		SELECT category, name FROM quickshab_assignments 
@@ -125,13 +135,13 @@ func formatQuickShab(db *sql.DB, chatID string) string {
 
 	// Format output
 	var result []string
-	
+
 	// Process standard categories
 	for _, category := range typeList {
 		needed := needs[category]
 		assigned := assignments[category]
 		upperLim := max(needed, len(assigned))
-		
+
 		for i := 0; i < upperLim; i++ {
 			name := ""
 			if i < len(assigned) {
@@ -162,7 +172,7 @@ func ShowCmd(db *sql.DB, chatID string) string {
 		return "No quickshab found. Create one with !quickshab [number]"
 	}
 
-	return formatQuickShab(db, chatID) + 
+	return formatQuickShab(db, chatID) +
 		"\n\nExample Usage:\n   • !bring main\n   • !assign gabe main\n\n" +
 		"You can also use !unbring and !unassign"
 }

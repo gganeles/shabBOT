@@ -77,7 +77,16 @@ func InitDB(db *sql.DB) error {
 		snoozable INTEGER DEFAULT 0,
 		sent_time INTEGER DEFAULT 0,
 		FOREIGN KEY (chat_id) REFERENCES chats(chat_id)
-	);`
+	);
+	
+	CREATE TABLE IF NOT EXISTS exercise_counter (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		chat_id TEXT NOT NULL,
+		user TEXT NOT NULL,
+		value INTEGER DEFAULT 0,
+		FOREIGN KEY (chat_id) REFERENCES chats(chat_id)
+	)
+	`
 
 	_, err := db.Exec(schema)
 	if err != nil {
