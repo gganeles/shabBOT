@@ -110,6 +110,12 @@ func InitDB(db *sql.DB) error {
 		return nil
 	}
 
+	// ensure unique index exists for existing DBs (adds UNIQUE for older DBs)
+	_, err = db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_exercise_chat_user ON exercise_counter(chat_id, user)`)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
