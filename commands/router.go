@@ -40,7 +40,6 @@ func (r *CommandRouter) Route(prompt string, evtInfo types.MessageInfo) string {
 	cmd := strings.ToLower(args[0])
 
 	chatID := evtInfo.Chat.String()
-	attendeeID := evtInfo.Sender.String()
 	attendeeName := evtInfo.PushName
 
 	// Get location for commands that need it
