@@ -48,12 +48,12 @@ func QuickShabCmd(db *sql.DB, prompt, chatID string) string {
 	args := parseArgs(prompt)
 
 	if len(args) < 2 {
-		return "Command syntax: !quickshab [number of people]"
+		return "Command syntax: !new [number of people]"
 	}
 
 	numPeople, err := strconv.Atoi(args[1])
 	if err != nil || numPeople <= 0 {
-		return "Command syntax: !quickshab [number of people]"
+		return "Command syntax: !new [number of people]"
 	}
 
 	// Ensure chat exists
@@ -72,7 +72,7 @@ func QuickShabCmd(db *sql.DB, prompt, chatID string) string {
 		return "Error creating quickshab"
 	}
 
-	return formatQuickShab(db, chatID) + "\n\nYou can sign yourself up by writing !bring [category]"
+	return formatQuickShab(db, chatID)
 }
 
 // UpdateNumberCmd updates the number of people for quickshab
@@ -160,7 +160,8 @@ func formatQuickShab(db *sql.DB, chatID string) string {
 		}
 	}
 
-	return strings.Join(result, "\n")
+	return strings.Join(result, "\n") + "\n\nExample Usage:\n   • !bring main\n   • !assign gabe main\n\n" +
+		"You can also use !unbring and !unassign"
 }
 
 // ShowCmd displays current quickshab assignments
@@ -172,9 +173,7 @@ func ShowCmd(db *sql.DB, chatID string) string {
 		return "No quickshab found. Create one with !quickshab [number]"
 	}
 
-	return formatQuickShab(db, chatID) +
-		"\n\nExample Usage:\n   • !bring main\n   • !assign gabe main\n\n" +
-		"You can also use !unbring and !unassign"
+	return formatQuickShab(db, chatID)
 }
 
 // Helper functions

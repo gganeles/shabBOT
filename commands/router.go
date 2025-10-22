@@ -76,7 +76,7 @@ func (r *CommandRouter) Route(prompt string, evtInfo types.MessageInfo) string {
 	case "chag", "chagtimes", "holiday", "holidays", "nextholiday":
 		return ChagTimesCmd(r.DB, prompt, chatID)
 	// QuickShab commands
-	case "quickshab":
+	case "quickshab", "new":
 		return QuickShabCmd(r.DB, prompt, chatID)
 
 	case "update", "up", "num", "ppl":
