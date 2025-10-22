@@ -17,9 +17,9 @@ func ExerciseCMD(db *sql.DB, prompt string, chatID string, attendeeName string) 
 		GetOrCreateChat(db, chatID)
 
 		_, err := db.Exec(`
-				INSERT INTO exercise_counter (chat_id, user, value) VALUES (?, ?, ?)
-				ON CONFLICT(chat_id) DO UPDATE SET value = value + ?
-			`, chatID, attendeeName, number, number)
+                INSERT INTO exercise_counter (chat_id, user, value) VALUES (?, ?, ?)
+                ON CONFLICT(chat_id, user) DO UPDATE SET value = value + excluded.value
+            `, chatID, attendeeName, number)
 
 		if err != nil {
 			return "Error ticking exercise counter: " + err.Error()

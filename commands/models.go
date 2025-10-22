@@ -84,7 +84,8 @@ func InitDB(db *sql.DB) error {
 		chat_id TEXT NOT NULL,
 		user TEXT NOT NULL,
 		value INTEGER DEFAULT 0,
-		FOREIGN KEY (chat_id) REFERENCES chats(chat_id)
+		FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
+		UNIQUE(chat_id, user)
 	)
 	`
 
