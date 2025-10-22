@@ -8,6 +8,17 @@ import (
 )
 
 func ExerciseCMD(db *sql.DB, prompt string, chatID string, attendeeName string) string {
+	args := parseArgs(prompt)
+	if args[1] == "clear" {
+		_, err := db.Exec(`
+			DELETE FROM exercise_counter WHERE chat_id = ? AND user = ?
+		`, chatID, attendeeName)
+		if err != nil {
+			return "Error clearing exercise counter: " + err.Error()
+		}
+		return "Exercise counter cleared."
+	}
+
 	r := regexp.MustCompile(`\b\d+\b`)
 	numberStr := r.FindString(prompt)
 
