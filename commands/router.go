@@ -86,7 +86,7 @@ func (r *CommandRouter) Route(prompt string, evtInfo types.MessageInfo) string {
 		return ShowCmd(r.DB, chatID)
 
 	case "bring", "br", "bringing":
-		return BringCmd(r.DB, prompt, chatID, attendeeID)
+		return BringCmd(r.DB, prompt, chatID, attendeeName)
 
 	case "assign":
 		return AssignCmd(r.DB, prompt, chatID)
