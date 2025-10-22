@@ -92,7 +92,7 @@ func (r *CommandRouter) Route(prompt string, evtInfo types.MessageInfo) string {
 		return AssignCmd(r.DB, prompt, chatID)
 
 	case "unbring", "unbr":
-		return UnbringCmd(r.DB, chatID, attendeeID)
+		return UnbringCmd(r.DB, chatID, attendeeName)
 
 	case "unassign":
 		return UnassignCmd(r.DB, prompt, chatID)
