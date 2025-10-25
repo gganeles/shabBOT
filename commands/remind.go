@@ -169,7 +169,11 @@ func SnoozeCmd(db *sql.DB, prompt, chatID string, timezone *time.Location) strin
 	}
 	defer rows.Close()
 
+	var reminderIDs []string
+
+	// Build searchObjects for all reminders so we can pick appropriate default
 	searchObjects := []searchObject{}
+	idTimes := map[string]int64{}
 
 	for rows.Next() {
 		var id, message string
@@ -183,27 +187,58 @@ func SnoozeCmd(db *sql.DB, prompt, chatID string, timezone *time.Location) strin
 			message: message,
 			index:   len(searchObjects),
 		})
+		idTimes[id] = reminderTime
 	}
 
 	if len(searchObjects) == 0 {
 		return "No reminders found to snooze."
 	}
 
-	// Find matching reminders using whatKeys
-	matchingIDs := whatKeys(searchQuery, searchObjects)
+	// If no search query provided, pick the most-recent past reminder (largest time < now).
+	// If none are past, pick the earliest upcoming reminder.
+	if strings.TrimSpace(searchQuery) == "" {
+		nowUnix := time.Now().Unix()
+		var chosenID string
+		var maxPastTime int64 = -1 << 62
+		var minFutureTime int64 = 1<<62 - 1
+		var chosenFutureID string
 
-	var reminderIDs []string
-	if len(matchingIDs) == 0 {
-		// If search query was provided but no matches, return nothing
-		if strings.TrimSpace(searchQuery) != "" {
-			return "No matching reminders found to snooze."
+		for id, t := range idTimes {
+			if t < nowUnix {
+				if t > maxPastTime {
+					maxPastTime = t
+					chosenID = id
+				}
+			} else {
+				if t < minFutureTime {
+					minFutureTime = t
+					chosenFutureID = id
+				}
+			}
 		}
-		// Default to earliest reminder (first in list)
-		reminderIDs = []string{searchObjects[0].id}
-	} else {
-		reminderIDs = matchingIDs
-	}
 
+		if chosenID != "" {
+			reminderIDs = []string{chosenID}
+		} else if chosenFutureID != "" {
+			reminderIDs = []string{chosenFutureID}
+		} else {
+			return "No reminders found to snooze."
+		}
+	} else {
+		// Find matching reminders using whatKeys
+		matchingIDs := whatKeys(searchQuery, searchObjects)
+
+		if len(matchingIDs) == 0 {
+			// If search query was provided but no matches, return nothing
+			if strings.TrimSpace(searchQuery) != "" {
+				return "No matching reminders found to snooze."
+			}
+			// Default to earliest reminder (first in list)
+			reminderIDs = []string{searchObjects[0].id}
+		} else {
+			reminderIDs = matchingIDs
+		}
+	}
 	// Update all matching reminders
 	var snoozedMessages []string
 	var successCount int
