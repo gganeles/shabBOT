@@ -3,6 +3,7 @@ package commands
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -151,27 +152,25 @@ func (r *CommandRouter) Route(prompt string, evtInfo types.MessageInfo) string {
 
 // ParseMultipleCommands handles messages with multiple commands separated by newlines
 func (r *CommandRouter) ParseMultipleCommands(message string, evtInfo types.MessageInfo) []string {
-	// Split by newlines and spaces followed by !
-	lines := strings.Split(message, "\n")
 	var responses []string
 
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
+	// Check for multiple commands on same line (e.g., "!help !docs")
+	// Split on any whitespace immediately before a '!' that is followed by a word character.
+	// We want to keep the '!' at the start of the subsequent part, so split on the whitespace only.
+	// Example matches: "\n!", " \t!", " \r\n!" where the char after ! is a word char.
+	var parts []string
+	// Use regex to find the split positions. We will split on the whitespace sequence that
+	// directly precedes a '!' which itself is followed by a word character.
+	re := regexp.MustCompile(`\s+!`)
+	parts = re.Split(message, -1)
+	for i, part := range parts {
+		if i > 0 {
+			part = "!" + part
 		}
 
-		// Check for multiple commands on same line (e.g., "!help !docs")
-		parts := strings.Split(line, " !")
-		for i, part := range parts {
-			if i > 0 {
-				part = "!" + part
-			}
-
-			response := r.Route(part, evtInfo)
-			if response != "" {
-				responses = append(responses, response)
-			}
+		response := r.Route(part, evtInfo)
+		if response != "" {
+			responses = append(responses, response)
 		}
 	}
 
