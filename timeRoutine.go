@@ -12,6 +12,18 @@ import (
 	"go.mau.fi/whatsmeow/types"
 )
 
+// TimeProvider is an interface for getting the current time (allows mocking in tests)
+type TimeProvider interface {
+	Now() time.Time
+}
+
+// RealTimeProvider implements TimeProvider using the actual time.Now()
+type RealTimeProvider struct{}
+
+func (RealTimeProvider) Now() time.Time {
+	return time.Now()
+}
+
 func timeRoutine(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
@@ -24,11 +36,15 @@ func timeRoutine(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
 		// Example scheduled message at 18:19:00
 		eighteenNineteen(client, ctx)
 
-		checkAndSendExerciseResults(client, db, ctx)
+		checkAndSendExerciseResultsWithTime(client, db, ctx, RealTimeProvider{})
 	}
 }
 
 func checkAndSendExerciseResults(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
+	checkAndSendExerciseResultsWithTime(client, db, ctx, RealTimeProvider{})
+}
+
+func checkAndSendExerciseResultsWithTime(client *whatsmeow.Client, db *sql.DB, ctx context.Context, timeProvider TimeProvider) {
 
 	rows, err := db.Query(`
 		SELECT DISTINCT 
@@ -43,20 +59,29 @@ func checkAndSendExerciseResults(client *whatsmeow.Client, db *sql.DB, ctx conte
 		fmt.Printf("Error querying exercise counters: %v\n", err)
 		return
 	}
-	defer rows.Close()
+
+	// Collect all chat data into a slice first, then close rows before processing
+	type chatData struct {
+		chatID   string
+		timezone string
+	}
+	var chats []chatData
 
 	for rows.Next() {
-		var chatID string
-		var timezoneName string
-		rows.Scan(&chatID, &timezoneName)
+		var cd chatData
+		rows.Scan(&cd.chatID, &cd.timezone)
+		chats = append(chats, cd)
+	}
+	rows.Close() // Close rows before doing any updates
 
-		timezone, err := time.LoadLocation(timezoneName)
+	for _, cd := range chats {
+		timezone, err := time.LoadLocation(cd.timezone)
 		if err != nil {
-			fmt.Printf("Error loading timezone for chat %s: %v\n", chatID, err)
+			fmt.Printf("Error loading timezone for chat %s: %v\n", cd.chatID, err)
 			continue
 		}
 
-		now := time.Now().In(timezone)
+		now := timeProvider.Now().In(timezone)
 
 		if time.Sunday != now.Weekday() {
 			continue
@@ -65,28 +90,28 @@ func checkAndSendExerciseResults(client *whatsmeow.Client, db *sql.DB, ctx conte
 		hour := now.Hour()
 		minute := now.Minute()
 		seconds := now.Second()
-		jid, err := types.ParseJID(chatID)
+		jid, err := types.ParseJID(cd.chatID)
 
 		if err != nil {
-			fmt.Printf("Error parsing chat ID %s: %v\n", chatID, err)
+			fmt.Printf("Error parsing chat ID %s: %v\n", cd.chatID, err)
 			continue
 		}
 
 		if hour == 9 && minute == 0 && seconds < 5 {
 			// Send exercise results message
-			messageText := "🏋️‍♂️ Exercise Results:\n\n" + commands.GetExerciseResults(db, chatID)
+			messageText := "🏋️‍♂️ Exercise Results:\n\n" + commands.GetExerciseResults(db, cd.chatID)
 			_, err = client.SendMessage(ctx, jid, &waE2E.Message{
 				Conversation: &messageText,
 			})
 
 			if err != nil {
-				fmt.Printf("Error sending exercise results to %s: %v\n", chatID, err)
+				fmt.Printf("Error sending exercise results to %s: %v\n", cd.chatID, err)
 			}
 
-			_, err = db.Exec(`UPDATE exercise_counter SET value = 0 WHERE chat_id = ?`, chatID)
+			_, err = db.Exec(`UPDATE exercise_counter SET value = 0 WHERE chat_id = ?`, cd.chatID)
 
 			if err != nil {
-				fmt.Printf("Error resetting exercise counter for %s: %v\n", chatID, err)
+				fmt.Printf("Error resetting exercise counter for %s: %v\n", cd.chatID, err)
 			}
 		}
 	}
