@@ -21,7 +21,6 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          shell: bash -l {0}
           envs: GH_TOKEN
           script: |
             set -euo pipefail

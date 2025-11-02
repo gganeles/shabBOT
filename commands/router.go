@@ -101,7 +101,7 @@ func (r *CommandRouter) Route(prompt string, evtInfo types.MessageInfo) string {
 	case "shop", "shp", "sh":
 		return ShopCmd(r.DB, prompt, chatID)
 
-	case "unshop", "unshp", "unsh":
+	case "unshop", "unshp", "unsh", "ush":
 		return UnshopCmd(r.DB, prompt, chatID)
 
 	case "shoplist", "shplist", "shoppinglist", "shlst", "shlist", "shls":
