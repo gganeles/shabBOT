@@ -13,24 +13,33 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy and Restart Service via SSH
-        uses: appleboy/ssh-action@v1.0.3 # Use a specific, stable version
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }} # e.g., 'ubuntu', 'ec2-user', 'root'
+          username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           shell: bash -l {0}
           script: |
-            # Navigate to the application directory
-            cd shabBOT
+            set -euo pipefail
+            export PATH=/usr/local/go/bin:$HOME/go/bin:$PATH
 
-            # Pull the latest code from the repository
-            git pull
+            REPO="gganeles/shabBOT"
+            BRANCH="goShabBOT"
+            APP_DIR="$HOME/shabBOT"
+            GIT_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
 
-            # Build the Go application
+            mkdir -p "$APP_DIR"
+            if [ ! -d "$APP_DIR/.git" ]; then
+              git clone -b "$BRANCH" "$GIT_URL" "$APP_DIR"
+            else
+              cd "$APP_DIR"
+              git fetch "$GIT_URL" "$BRANCH"
+              git reset --hard FETCH_HEAD
+            fi
+
             go build
-
-            # Restart the systemd service (requires appropriate permissions)
             sudo systemctl restart shabbot.service
-
             echo "Deployment and restart complete."
