@@ -68,7 +68,7 @@ func ShopCmd(db *sql.DB, prompt, chatID string) string {
 		var existingID int
 		var existingQty int
 		err := db.QueryRow(`
-			SELECT id, quantity FROM shopping_list 
+			SELECT id, quantity FROM shopping_list
 			WHERE chat_id = ? AND LOWER(item) = LOWER(?)
 		`, chatID, itemText).Scan(&existingID, &existingQty)
 
@@ -76,7 +76,7 @@ func ShopCmd(db *sql.DB, prompt, chatID string) string {
 			// Item exists, update quantity if provided
 			if quantity > 0 {
 				_, err = db.Exec(`
-					UPDATE shopping_list SET quantity = ? 
+					UPDATE shopping_list SET quantity = ?
 					WHERE id = ?
 				`, quantity, existingID)
 				if err != nil {
@@ -92,7 +92,7 @@ func ShopCmd(db *sql.DB, prompt, chatID string) string {
 
 		// Add new item
 		_, err = db.Exec(`
-			INSERT INTO shopping_list (chat_id, item, quantity) 
+			INSERT INTO shopping_list (chat_id, item, quantity)
 			VALUES (?, ?, ?)
 		`, chatID, itemText, quantity)
 
@@ -124,8 +124,8 @@ func ShopCmd(db *sql.DB, prompt, chatID string) string {
 // ShopListCmd displays the shopping list
 func ShopListCmd(db *sql.DB, chatID string) string {
 	rows, err := db.Query(`
-		SELECT item, quantity FROM shopping_list 
-		WHERE chat_id = ? 
+		SELECT item, quantity FROM shopping_list
+		WHERE chat_id = ?
 		ORDER BY id
 	`, chatID)
 
@@ -166,8 +166,6 @@ func UnshopCmd(db *sql.DB, prompt, chatID string) string {
 		return "Usage: !unshop <item>"
 	}
 
-	itemToRemove := strings.Join(args[1:], " ")
-
 	// Check if list is empty
 	var count int
 	db.QueryRow(`SELECT COUNT(*) FROM shopping_list WHERE chat_id = ?`, chatID).Scan(&count)
@@ -175,63 +173,81 @@ func UnshopCmd(db *sql.DB, prompt, chatID string) string {
 		return "Your shopping list is empty."
 	}
 
+	// Join remaining args as item text (may contain multiple items separated by commas or newlines)
+	rawItems := strings.Join(args[1:], " ")
+
+	// Split on commas or newlines to allow removing multiple items at once
+	splitter := regexp.MustCompile(`[\r\n,]+`)
+	parts := splitter.Split(rawItems, -1)
+
+	var responses []string
+
+	for _, p := range parts {
+		itemToRemove := strings.TrimSpace(p)
+		if itemToRemove == "" {
+			continue
+		}
+
+		itemName, err := findItemToRemove(db, chatID, itemToRemove)
+		if err != nil {
+			responses = append(responses, err.Error())
+			continue
+		}
+
+		if err := removeShoppingItem(db, chatID, itemName); err != nil {
+			responses = append(responses, fmt.Sprintf("Error removing %s", itemName))
+			continue
+		}
+
+		responses = append(responses, fmt.Sprintf(`"%s" has been removed from your shopping list.`, itemName))
+	}
+
+	if len(responses) == 0 {
+		return "Usage: !unshop <item>"
+	}
+
+	return strings.Join(responses, "\n")
+}
+
+// findItemToRemove returns the item name to remove based on index or name search
+func findItemToRemove(db *sql.DB, chatID, input string) (string, error) {
 	// Check if it's a number (index)
-	if index, err := strconv.Atoi(itemToRemove); err == nil {
-		// Remove by index
+	if index, err := strconv.Atoi(input); err == nil {
 		var itemName string
 		err := db.QueryRow(`
-			SELECT item FROM shopping_list 
-			WHERE chat_id = ? 
-			ORDER BY id 
+			SELECT item FROM shopping_list
+			WHERE chat_id = ?
+			ORDER BY id
 			LIMIT 1 OFFSET ?
 		`, chatID, index-1).Scan(&itemName)
 
 		if err != nil {
-			return "Invalid item index."
+			return "", fmt.Errorf("invalid item index")
 		}
-
-		_, err = db.Exec(`
-			DELETE FROM shopping_list 
-			WHERE chat_id = ? AND item = ?
-			AND id = (
-				SELECT id FROM shopping_list 
-				WHERE chat_id = ? AND item = ?
-				LIMIT 1
-			)
-		`, chatID, itemName, chatID, itemName)
-
-		if err != nil {
-			return "Error removing item"
-		}
-
-		return fmt.Sprintf(`"%s" has been removed from your shopping list.`, itemName)
+		return itemName, nil
 	}
 
-	// Remove by name (partial match)
+	// Search by name (partial match)
 	var itemName string
 	err := db.QueryRow(`
-		SELECT item FROM shopping_list 
+		SELECT item FROM shopping_list
 		WHERE chat_id = ? AND item LIKE ?
 		LIMIT 1
-	`, chatID, "%"+itemToRemove+"%").Scan(&itemName)
+	`, chatID, "%"+input+"%").Scan(&itemName)
 
 	if err != nil {
-		return fmt.Sprintf(`Item "%s" not found in shopping list.`, itemToRemove)
+		return "", fmt.Errorf(`item "%s" not found in shopping list`, input)
 	}
 
-	_, err = db.Exec(`
-		DELETE FROM shopping_list 
+	return itemName, nil
+}
+
+// removeShoppingItem deletes a single item from the shopping list
+func removeShoppingItem(db *sql.DB, chatID, itemName string) error {
+	_, err := db.Exec(`
+		DELETE FROM shopping_list
 		WHERE chat_id = ? AND item = ?
-		AND id = (
-			SELECT id FROM shopping_list 
-			WHERE chat_id = ? AND item = ?
-			LIMIT 1
-		)
-	`, chatID, itemName, chatID, itemName)
-
-	if err != nil {
-		return "Error removing item"
-	}
-
-	return fmt.Sprintf(`"%s" has been removed from your shopping list.`, itemName)
+		LIMIT 1
+	`, chatID, itemName)
+	return err
 }

@@ -17,6 +17,8 @@ func ExerciseCMD(db *sql.DB, prompt string, chatID string, attendeeName string) 
 			return "Error clearing exercise counter: " + err.Error()
 		}
 		return "Exercise counter cleared."
+	} else if args[1] == "show" {
+		return "Current Standings:\n" + GetExerciseResults(db, chatID)
 	}
 
 	r := regexp.MustCompile(`\b\d+\b`)
@@ -44,7 +46,7 @@ func ExerciseCMD(db *sql.DB, prompt string, chatID string, attendeeName string) 
 
 func GetExerciseResults(db *sql.DB, chatID string) string {
 	rows, err := db.Query(`
-		SELECT user, value FROM exercise_counter 
+		SELECT user, value FROM exercise_counter
 		WHERE chat_id = ?
 	`, chatID)
 	if err != nil {
