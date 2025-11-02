@@ -19,6 +19,7 @@ jobs:
           username: ${{ secrets.SSH_USER }} # e.g., 'ubuntu', 'ec2-user', 'root'
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          shell: bash -l {0}
           script: |
             # Navigate to the application directory
             cd shabBOT
