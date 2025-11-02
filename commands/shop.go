@@ -188,13 +188,13 @@ func UnshopCmd(db *sql.DB, prompt, chatID string) string {
 			continue
 		}
 
-		itemName, err := findItemToRemove(db, chatID, itemToRemove)
+		id, itemName, err := findItemToRemove(db, chatID, itemToRemove)
 		if err != nil {
 			responses = append(responses, err.Error())
 			continue
 		}
 
-		if err := removeShoppingItem(db, chatID, itemName); err != nil {
+		if err := removeShoppingItem(db, id); err != nil {
 			responses = append(responses, fmt.Sprintf("Error removing %s", itemName))
 			continue
 		}
@@ -209,45 +209,46 @@ func UnshopCmd(db *sql.DB, prompt, chatID string) string {
 	return strings.Join(responses, "\n")
 }
 
-// findItemToRemove returns the item name to remove based on index or name search
-func findItemToRemove(db *sql.DB, chatID, input string) (string, error) {
+// findItemToRemove returns the item id and name to remove based on index or name search
+func findItemToRemove(db *sql.DB, chatID, input string) (int, string, error) {
 	// Check if it's a number (index)
 	if index, err := strconv.Atoi(input); err == nil {
 		var itemName string
+		var id int
 		err := db.QueryRow(`
-			SELECT item FROM shopping_list
+			SELECT id, item FROM shopping_list
 			WHERE chat_id = ?
 			ORDER BY id
 			LIMIT 1 OFFSET ?
-		`, chatID, index-1).Scan(&itemName)
+		`, chatID, index-1).Scan(&id, &itemName)
 
 		if err != nil {
-			return "", fmt.Errorf("invalid item index")
+			return 0, "", fmt.Errorf("invalid item index")
 		}
-		return itemName, nil
+		return id, itemName, nil
 	}
 
 	// Search by name (partial match)
 	var itemName string
+	var id int
 	err := db.QueryRow(`
-		SELECT item FROM shopping_list
+		SELECT id, item FROM shopping_list
 		WHERE chat_id = ? AND item LIKE ?
 		LIMIT 1
-	`, chatID, "%"+input+"%").Scan(&itemName)
+	`, chatID, "%"+input+"%").Scan(&id, &itemName)
 
 	if err != nil {
-		return "", fmt.Errorf(`item "%s" not found in shopping list`, input)
+		return 0, "", fmt.Errorf(`item "%s" not found in shopping list`, input)
 	}
 
-	return itemName, nil
+	return id, itemName, nil
 }
 
-// removeShoppingItem deletes a single item from the shopping list
-func removeShoppingItem(db *sql.DB, chatID, itemName string) error {
+// removeShoppingItem deletes a single item from the shopping list by id
+func removeShoppingItem(db *sql.DB, id int) error {
 	_, err := db.Exec(`
 		DELETE FROM shopping_list
-		WHERE chat_id = ? AND item = ?
-		LIMIT 1
-	`, chatID, itemName)
+		WHERE id = ?
+	`, id)
 	return err
 }
