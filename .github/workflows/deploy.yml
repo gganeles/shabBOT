@@ -1,0 +1,35 @@
+name: Deploy Application on Push
+
+on:
+  push:
+    branches:
+      - goShabBOT # Trigger this workflow only when pushes are made to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy and Restart Service via SSH
+        uses: appleboy/ssh-action@v1.0.3 # Use a specific, stable version
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }} # e.g., 'ubuntu', 'ec2-user', 'root'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            # Navigate to the application directory
+            cd shabBOT
+
+            # Pull the latest code from the repository
+            git pull
+
+            # Build the Go application
+            go build
+
+            # Restart the systemd service (requires appropriate permissions)
+            sudo systemctl restart shabbot.service
+
+            echo "Deployment and restart complete."
