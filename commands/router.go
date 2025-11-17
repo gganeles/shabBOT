@@ -147,7 +147,7 @@ func (r *CommandRouter) Route(prompt string, evtInfo types.MessageInfo) string {
 		return ExerciseCMD(r.DB, prompt, chatID, attendeeName)
 
 	case "clean", "chore", "chores", "cleaning":
-		sender := evtInfo.Sender.User // Get the phone number
+		sender := evtInfo.SenderAlt.User // Get the phone number
 		fmt.Println(evtInfo.Sender, evtInfo.SenderAlt)
 		argsStr := strings.TrimSpace(strings.TrimPrefix(prompt, cmd))
 		return HandleCleaningCommand(r.DB, chatID, sender, argsStr)
