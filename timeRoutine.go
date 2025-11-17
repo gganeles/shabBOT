@@ -48,7 +48,8 @@ var weeklyOffset uint8 = 0
 var chores []string = []string{"Kitchen", "Living Room", "Trash", "Floors", "Bathrooms", "Balcony"}
 
 func formatCleaningString(db *sql.DB, showProgress bool) string {
-	rows, err := db.Query(`SELECT name, chore, done FROM weekly_cleaning ORDER BY name`)
+	// Only show cleaners with assigned chores (active this week)
+	rows, err := db.Query(`SELECT name, chore, done FROM weekly_cleaning WHERE chore != '' ORDER BY name`)
 	if err != nil {
 		fmt.Printf("Error querying weekly_cleaning: %v\n", err)
 		return "Error retrieving cleaning data"
@@ -87,6 +88,13 @@ func formatCleaningString(db *sql.DB, showProgress bool) string {
 }
 
 func assignChores(db *sql.DB) {
+	// First, clear all current chore assignments
+	_, err := db.Exec(`UPDATE weekly_cleaning SET chore = '', done = 0`)
+	if err != nil {
+		fmt.Printf("Error clearing chore assignments: %v\n", err)
+		return
+	}
+
 	// Get all cleaners
 	rows, err := db.Query(`SELECT name FROM weekly_cleaning ORDER BY name`)
 	if err != nil {
@@ -95,23 +103,30 @@ func assignChores(db *sql.DB) {
 	}
 	defer rows.Close()
 
-	var cleaners []string
+	var allCleaners []string
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
 			continue
 		}
-		cleaners = append(cleaners, name)
+		allCleaners = append(allCleaners, name)
 	}
 	rows.Close()
 
-	// Rotate chores assignment
-	weeklyOffset = (weeklyOffset + 1) % uint8(len(chores))
+	// Rotate the weekly offset to determine which cleaners are active
+	weeklyOffset = (weeklyOffset + 1) % uint8(len(allCleaners))
 
-	// Assign chores to cleaners
-	for i, cleaner := range cleaners {
-		choreIndex := (i + int(weeklyOffset)) % len(chores)
-		chore := chores[choreIndex]
+	// Select cleaners for this week (rotate through the list)
+	numChores := len(chores)
+	if numChores > len(allCleaners) {
+		numChores = len(allCleaners)
+	}
+
+	// Assign chores to the selected cleaners
+	for i := 0; i < numChores; i++ {
+		cleanerIndex := (int(weeklyOffset) + i) % len(allCleaners)
+		cleaner := allCleaners[cleanerIndex]
+		chore := chores[i]
 
 		_, err := db.Exec(`UPDATE weekly_cleaning SET chore = ?, done = 0 WHERE name = ?`, chore, cleaner)
 		if err != nil {

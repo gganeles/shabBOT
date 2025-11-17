@@ -96,8 +96,8 @@ func InitDB(db *sql.DB) error {
 	);
 
 	CREATE TABLE IF NOT EXISTS weekly_cleaning (
+		number VARCHAR PRIMARY KEY,
 		name VARCHAR NOT NULL,
-		number VARCHAR NOT NULL,
 		chore VARCHAR DEFAULT '',
 		done BOOLEAN DEFAULT FALSE
 	);
@@ -108,20 +108,37 @@ func InitDB(db *sql.DB) error {
 		return err
 	}
 
+	// Migration: Remove duplicate cleaners from weekly_cleaning table
+	// This handles existing databases that have duplicates from before the PRIMARY KEY was added
+	// Keep only the first occurrence of each number (phone number)
+	_, err = db.Exec(`
+		DELETE FROM weekly_cleaning 
+		WHERE rowid NOT IN (
+			SELECT MIN(rowid) 
+			FROM weekly_cleaning 
+			GROUP BY number
+		)
+	`)
+	if err != nil {
+		log.Printf("Warning: Failed to remove duplicate cleaners: %v", err)
+		// Don't return error, just log it - this is a non-critical migration
+	}
+
 	cleaners := map[string]string{
 		"972542254475": "Lidor",
 		"972524673512": "Jeremy",
 		"972587920084": "Liron",
 		"972587120601": "Gabe",
 		"972586350530": "Nico",
+		"972586251000": "Luke",
 	}
 
 	for dude := range cleaners {
 		db.Exec(`
-			INSERT OR IGNORE INTO weekly_cleaning (name, number, done, chore)
+			INSERT OR IGNORE INTO weekly_cleaning (number, name, chore, done)
 		 	VALUES (?,?,?,?)
 			`,
-			cleaners[dude], dude, false, "")
+			dude, cleaners[dude], "", false)
 	}
 
 	// Migration: Add sent_time column if it doesn't exist

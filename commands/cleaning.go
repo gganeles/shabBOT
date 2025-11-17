@@ -54,8 +54,8 @@ func HandleCleaningCommand(db *sql.DB, chatID, sender, args string) string {
 
 		return "❌ Marked your chore as not done."
 	} else if args == "status" || args == "" {
-		// Show cleaning status
-		rows, err := db.Query(`SELECT name, chore, done FROM weekly_cleaning ORDER BY name`)
+		// Show cleaning status - only show active cleaners with assigned chores
+		rows, err := db.Query(`SELECT name, chore, done FROM weekly_cleaning WHERE chore != '' ORDER BY name`)
 		if err != nil {
 			return "Error retrieving cleaning status."
 		}
@@ -64,7 +64,9 @@ func HandleCleaningCommand(db *sql.DB, chatID, sender, args string) string {
 		var builder strings.Builder
 		builder.WriteString("*Current Cleaning Status:*\n")
 
+		hasAny := false
 		for rows.Next() {
+			hasAny = true
 			var name, chore string
 			var done bool
 			if err := rows.Scan(&name, &chore, &done); err != nil {
@@ -78,6 +80,10 @@ func HandleCleaningCommand(db *sql.DB, chatID, sender, args string) string {
 				builder.WriteString("❌")
 			}
 			builder.WriteString("\n")
+		}
+
+		if !hasAny {
+			return "No chores assigned yet. Chores will be assigned on Sunday at 9:00 AM."
 		}
 
 		return builder.String()
