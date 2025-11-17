@@ -32,8 +32,8 @@ func (shabcli *ShabClient) respond(evt interface{}) {
 		if text == "" {
 			return
 		}
-
-		//fmt.Println("Received message from:", v.Info.PushName)
+		
+		fmt.Println("Received message:", v)
 		for _, response := range shabcli.router.ParseMultipleCommands(text, v.Info) {
 			fmt.Println("sending response:", response)
 			_, err := shabcli.WAClient.SendMessage(shabcli.context, v.Info.Chat, &waE2E.Message{
