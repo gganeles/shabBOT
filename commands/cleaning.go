@@ -9,7 +9,7 @@ import (
 // HandleCleaningCommand handles marking chores as done
 func HandleCleaningCommand(db *sql.DB, chatID, sender, args string) string {
 	// Check if this is the right chat
-	if chatID != "120363154021870149@g.us" {
+	if chatID != "120363037678094725@g.us" {
 		return "This command is only available in the household group chat."
 	}
 

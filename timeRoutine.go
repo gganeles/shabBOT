@@ -129,7 +129,7 @@ func weeklyCleaning(client *whatsmeow.Client, ctx context.Context, db *sql.DB) {
 	seconds := now.Second()
 
 	// Group chat ID
-	jid, err := types.ParseJID("120363154021870149@g.us")
+	jid, err := types.ParseJID("120363037678094725@g.us")
 	if err != nil {
 		fmt.Printf("Error parsing chat ID for weekly cleaning: %v\n", err)
 		return
