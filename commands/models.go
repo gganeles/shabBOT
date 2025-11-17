@@ -37,6 +37,13 @@ type Reminder struct {
 	Snoozable bool
 }
 
+type Cleaner struct {
+	Name   string
+	Number string
+	Done   string
+	Chore  string
+}
+
 // InitDB initializes the database schema
 func InitDB(db *sql.DB) error {
 	schema := `
@@ -78,7 +85,7 @@ func InitDB(db *sql.DB) error {
 		sent_time INTEGER DEFAULT 0,
 		FOREIGN KEY (chat_id) REFERENCES chats(chat_id)
 	);
-	
+
 	CREATE TABLE IF NOT EXISTS exercise_counter (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		chat_id TEXT NOT NULL,
@@ -86,12 +93,35 @@ func InitDB(db *sql.DB) error {
 		value INTEGER DEFAULT 0,
 		FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
 		UNIQUE(chat_id, user)
-	)
+	);
+
+	CREATE TABLE IF NOT EXISTS weekly_cleaning (
+		name VARCHAR NOT NULL,
+		number VARCHAR NOT NULL,
+		chore VARCHAR DEFAULT '',
+		done BOOLEAN DEFAULT FALSE
+	);
 	`
 
 	_, err := db.Exec(schema)
 	if err != nil {
 		return err
+	}
+
+	cleaners := map[string]string{
+		"972542254475": "Lidor",
+		"972524673512": "Jeremy",
+		"972587920084": "Liron",
+		"972587120601": "Gabe",
+		"972586350530": "Nico",
+	}
+
+	for dude := range cleaners {
+		db.Exec(`
+			INSERT OR IGNORE INTO weekly_cleaning (name, number, done, chore)
+		 	VALUES (?,?,?,?)
+			`,
+			cleaners[dude], dude, false, "")
 	}
 
 	// Migration: Add sent_time column if it doesn't exist

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"shabBOT/commands"
+	"strings"
 	"time"
 
 	"go.mau.fi/whatsmeow"
@@ -37,6 +38,131 @@ func timeRoutine(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
 		eighteenNineteen(client, ctx)
 
 		checkAndSendExerciseResultsWithTime(client, db, ctx, RealTimeProvider{})
+
+		weeklyCleaning(client, ctx, db)
+	}
+}
+
+var weeklyOffset uint8 = 0
+
+var chores []string = []string{"Kitchen", "Living Room", "Trash", "Floors", "Bathrooms", "Balcony"}
+
+func formatCleaningString(db *sql.DB, showProgress bool) string {
+	rows, err := db.Query(`SELECT name, chore, done FROM weekly_cleaning ORDER BY name`)
+	if err != nil {
+		fmt.Printf("Error querying weekly_cleaning: %v\n", err)
+		return "Error retrieving cleaning data"
+	}
+	defer rows.Close()
+
+	var builder strings.Builder
+	builder.Grow(200)
+
+	if showProgress {
+		builder.WriteString("*Chores Done So Far:*\n")
+	} else {
+		builder.WriteString("*New Chores This Week:*\n")
+	}
+
+	for rows.Next() {
+		var name, chore string
+		var done bool
+		if err := rows.Scan(&name, &chore, &done); err != nil {
+			continue
+		}
+
+		builder.WriteString(fmt.Sprintf("  %s: %s", name, chore))
+
+		if showProgress {
+			if done {
+				builder.WriteString(" ✅")
+			} else {
+				builder.WriteString(" ❌")
+			}
+		}
+		builder.WriteString("\n")
+	}
+
+	return builder.String()
+}
+
+func assignChores(db *sql.DB) {
+	// Get all cleaners
+	rows, err := db.Query(`SELECT name FROM weekly_cleaning ORDER BY name`)
+	if err != nil {
+		fmt.Printf("Error querying cleaners: %v\n", err)
+		return
+	}
+	defer rows.Close()
+
+	var cleaners []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			continue
+		}
+		cleaners = append(cleaners, name)
+	}
+	rows.Close()
+
+	// Rotate chores assignment
+	weeklyOffset = (weeklyOffset + 1) % uint8(len(chores))
+
+	// Assign chores to cleaners
+	for i, cleaner := range cleaners {
+		choreIndex := (i + int(weeklyOffset)) % len(chores)
+		chore := chores[choreIndex]
+
+		_, err := db.Exec(`UPDATE weekly_cleaning SET chore = ?, done = 0 WHERE name = ?`, chore, cleaner)
+		if err != nil {
+			fmt.Printf("Error assigning chore to %s: %v\n", cleaner, err)
+		}
+	}
+}
+
+func weeklyCleaning(client *whatsmeow.Client, ctx context.Context, db *sql.DB) {
+	haifa, _ := time.LoadLocation("Asia/Jerusalem")
+	now := time.Now().In(haifa)
+
+	hour := now.Hour()
+	minute := now.Minute()
+	seconds := now.Second()
+
+	// Group chat ID
+	jid, err := types.ParseJID("120363154021870149@g.us")
+	if err != nil {
+		fmt.Printf("Error parsing chat ID for weekly cleaning: %v\n", err)
+		return
+	}
+
+	// Saturday night at 20:00 - Send progress report
+	if now.Weekday() == time.Saturday && hour == 20 && minute == 0 && seconds < 5 {
+		messageText := formatCleaningString(db, true)
+		_, err = client.SendMessage(ctx, jid, &waE2E.Message{
+			Conversation: &messageText,
+		})
+		if err != nil {
+			fmt.Printf("Error sending weekly cleaning progress: %v\n", err)
+		} else {
+			fmt.Printf("Sent weekly cleaning progress at %s\n", now.Format("2006-01-02 15:04:05"))
+		}
+	}
+
+	// Sunday at 9:00 - Assign new chores and send announcement
+	if now.Weekday() == time.Sunday && hour == 9 && minute == 0 && seconds < 5 {
+		// Assign new chores
+		assignChores(db)
+
+		// Send new assignments
+		messageText := formatCleaningString(db, false)
+		_, err = client.SendMessage(ctx, jid, &waE2E.Message{
+			Conversation: &messageText,
+		})
+		if err != nil {
+			fmt.Printf("Error sending weekly cleaning assignments: %v\n", err)
+		} else {
+			fmt.Printf("Sent weekly cleaning assignments at %s\n", now.Format("2006-01-02 15:04:05"))
+		}
 	}
 }
 
@@ -47,12 +173,12 @@ func checkAndSendExerciseResults(client *whatsmeow.Client, db *sql.DB, ctx conte
 func checkAndSendExerciseResultsWithTime(client *whatsmeow.Client, db *sql.DB, ctx context.Context, timeProvider TimeProvider) {
 
 	rows, err := db.Query(`
-		SELECT DISTINCT 
-			e.chat_id, c.timezone 
-		FROM 
+		SELECT DISTINCT
+			e.chat_id, c.timezone
+		FROM
 			exercise_counter AS e
 		JOIN
-			chats as c ON e.chat_id = c.chat_id	
+			chats as c ON e.chat_id = c.chat_id
 		`)
 
 	if err != nil {
@@ -97,7 +223,7 @@ func checkAndSendExerciseResultsWithTime(client *whatsmeow.Client, db *sql.DB, c
 			continue
 		}
 
-		if hour == 9 && minute == 0 && seconds < 5 {
+		if hour == 0 && minute == 0 && seconds < 5 {
 			// Send exercise results message
 			messageText := "🏋️‍♂️ Exercise Results:\n\n" + commands.GetExerciseResults(db, cd.chatID)
 			_, err = client.SendMessage(ctx, jid, &waE2E.Message{
@@ -131,8 +257,8 @@ func checkAndSendReminders(client *whatsmeow.Client, db *sql.DB, ctx context.Con
 	// Query for reminders whose time has passed (and are not timeless reminders)
 	// Exclude reminders that have already been sent (sent_time > 0)
 	rows, err := tx.Query(`
-		SELECT id, chat_id, message, type 
-		FROM reminders 
+		SELECT id, chat_id, message, type
+		FROM reminders
 		WHERE time > 0 AND time <= ? AND sent_time = 0
 		ORDER BY time ASC
 	`, now)
@@ -210,8 +336,8 @@ func checkAndSendReminders(client *whatsmeow.Client, db *sql.DB, ctx context.Con
 			} else {
 				// Mark remind-type reminders as sent and snoozable
 				_, err = db.Exec(`
-					UPDATE reminders 
-					SET sent_time = ?, snoozable = 1 
+					UPDATE reminders
+					SET sent_time = ?, snoozable = 1
 					WHERE id = ?
 				`, now, reminder.ID)
 			}
@@ -243,7 +369,7 @@ func cleanupOldReminders(db *sql.DB) {
 	cutoffTime := time.Now().Unix() - (24 * 60 * 60) // 24 hours ago
 
 	result, err := db.Exec(`
-		DELETE FROM reminders 
+		DELETE FROM reminders
 		WHERE sent_time > 0 AND sent_time < ?
 	`, cutoffTime)
 
