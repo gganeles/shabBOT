@@ -1,5 +1,5 @@
 [workspace]
-members = ["rustWABot", "deno-runner"]
+members = ["rust_shabbot", "deno-runner"]
 resolver = "2"
 
 # Shared dependencies across workspace

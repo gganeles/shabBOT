@@ -1,4 +1,4 @@
-// Library interface for rustWABot
+// Library interface for rust_shabbot
 // This allows tests to access internal modules
 
 pub mod commands;

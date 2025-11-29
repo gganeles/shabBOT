@@ -3,8 +3,8 @@
 
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
-use rustWABot::commands::reminders::*;
-use rustWABot::commands::scheduled::*;
+use rust_shabbot::commands::reminders::*;
+use rust_shabbot::commands::scheduled::*;
 
 fn setup_test_db() -> SqliteConnection {
     let mut conn =

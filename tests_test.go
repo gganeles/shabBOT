@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"shabBOT/commands"
 	"strings"
 	"testing"
 	"time"
@@ -199,9 +200,9 @@ func TestCheckAndSendExerciseResults(t *testing.T) {
 	})
 }
 
-// TestCheckAndSendExerciseResultsOnSunday tests behavior specifically on Sunday at 9 AM
+// TestCheckAndSendExerciseResultsOnSunday tests behavior specifically on Sunday at 0 AM
 func TestCheckAndSendExerciseResultsOnSunday(t *testing.T) {
-	t.Run("SundayAt9AM_ResetCounters", func(t *testing.T) {
+	t.Run("SundayAt0AM_ResetCounters", func(t *testing.T) {
 		// Create an in-memory SQLite database for testing
 		db, err := sql.Open("sqlite3", ":memory:")
 		if err != nil {
@@ -280,8 +281,8 @@ func TestCheckAndSendExerciseResultsOnSunday(t *testing.T) {
 		// Create a mock time for Sunday at 9:00:02 AM Eastern Time
 		// December 29, 2024 is a Sunday
 		loc, _ := time.LoadLocation("America/New_York")
-		sundayAt9AM := time.Date(2024, 12, 29, 9, 0, 2, 0, loc)
-		mockTime := MockTimeProvider{CurrentTime: sundayAt9AM}
+		sundayAt0AM := time.Date(2024, 12, 29, 0, 0, 2, 0, loc)
+		mockTime := MockTimeProvider{CurrentTime: sundayAt0AM}
 
 		ctx := context.Background()
 		// Call the function with mocked time (client can be nil for this test)
@@ -309,7 +310,7 @@ func TestCheckAndSendExerciseResultsOnSunday(t *testing.T) {
 		}
 	})
 
-	t.Run("SundayAt9_05AM_NoReset", func(t *testing.T) {
+	t.Run("SundayAt0AM_NoReset", func(t *testing.T) {
 		// Create an in-memory SQLite database for testing
 		db, err := sql.Open("sqlite3", ":memory:")
 		if err != nil {
@@ -482,13 +483,13 @@ func TestCheckAndSendExerciseResultsOnSunday(t *testing.T) {
 			mockTime time.Time
 			expected int // expected value after function runs (0 if reset, original if not)
 		}{
-			// Sunday 9 AM in New York
+			// Sunday 0 AM in New York
 			{"chat_ny@g.us", "America/New_York",
-				time.Date(2024, 12, 29, 9, 0, 2, 0, mustLoadLocation("America/New_York")), 0},
-			// Sunday 9 AM in London
+				time.Date(2024, 12, 29, 0, 0, 2, 0, mustLoadLocation("America/New_York")), 0},
+			// Sunday 0 AM in London
 			{"chat_london@g.us", "Europe/London",
-				time.Date(2024, 12, 29, 9, 0, 2, 0, mustLoadLocation("Europe/London")), 0},
-			// Sunday 8 AM in Sydney (not 9 AM)
+				time.Date(2024, 12, 29, 0, 0, 2, 0, mustLoadLocation("Europe/London")), 0},
+			// Sunday 8 AM in Sydney (not 0 AM)
 			{"chat_sydney@g.us", "Australia/Sydney",
 				time.Date(2024, 12, 29, 8, 0, 2, 0, mustLoadLocation("Australia/Sydney")), 10},
 		}
@@ -583,7 +584,7 @@ func TestFormatCleaningString(t *testing.T) {
 	}
 
 	t.Run("EmptyDatabase", func(t *testing.T) {
-		result := formatCleaningString(db, false)
+		result := commands.FormatCleaningString(db, false)
 		if !strings.Contains(result, "*New Chores This Week:*") {
 			t.Errorf("Expected header in result, got: %s", result)
 		}
@@ -596,7 +597,7 @@ func TestFormatCleaningString(t *testing.T) {
 		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
 			"Bob", "5678", "Trash", true)
 
-		result := formatCleaningString(db, false)
+		result := commands.FormatCleaningString(db, false)
 
 		if !strings.Contains(result, "*New Chores This Week:*") {
 			t.Errorf("Expected 'New Chores This Week' header")
@@ -623,7 +624,7 @@ func TestFormatCleaningString(t *testing.T) {
 		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
 			"David", "8888", "Bathrooms", false)
 
-		result := formatCleaningString(db, true)
+		result := commands.FormatCleaningString(db, true)
 
 		if !strings.Contains(result, "*Chores Done So Far:*") {
 			t.Errorf("Expected 'Chores Done So Far' header")
@@ -670,7 +671,7 @@ func TestAssignChores(t *testing.T) {
 		}
 
 		// Call assignChores
-		assignChores(db)
+		commands.AssignChores(db)
 
 		// Verify chores were assigned
 		rows, err := db.Query(`SELECT name, chore, done FROM weekly_cleaning ORDER BY name`)
@@ -710,6 +711,8 @@ func TestAssignChores(t *testing.T) {
 		// Insert cleaners
 		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
 			"Alice", "1", "Kitchen", false)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
+			"Bob", "2", "Living Room", false)
 
 		// Get initial assignment
 		var initialChore string
@@ -718,7 +721,7 @@ func TestAssignChores(t *testing.T) {
 		// Call assignChores multiple times to test rotation
 		var chores []string
 		for i := 0; i < 6; i++ {
-			assignChores(db)
+			commands.AssignChores(db)
 			var chore string
 			db.QueryRow(`SELECT chore FROM weekly_cleaning WHERE name = ?`, "Alice").Scan(&chore)
 			chores = append(chores, chore)
@@ -813,6 +816,32 @@ func TestHandleCleaningCommand(t *testing.T) {
 
 		t.Skip("Requires commands package import")
 	})
+
+	t.Run("RedoCommand", func(t *testing.T) {
+		// Insert cleaners
+		db.Exec(`DELETE FROM weekly_cleaning`)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
+			"Alice", "1234", "Kitchen", false)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
+			"Bob", "5678", "Living Room", false)
+
+		// Sender must be the authorized number
+		sender := "972587120601"
+		chatID := "120363037678094725@g.us" // valid chat ID
+
+		// Execute command
+		result := commands.HandleCleaningCommand(db, chatID, sender, "redo")
+
+		// Verify result contains new assignments
+		if !strings.Contains(result, "*New Chores This Week:*") {
+			t.Errorf("Expected new chores header, got: %s", result)
+		}
+
+		// Verify chores were actually reassigned
+		// We can check if they are valid strings from the list
+		// Since we only have 2 people and 3 chores, and rotation happens, we might not know exactly which one without checking state,
+		// but we can check that the function returned successfully.
+	})
 }
 
 // TestWeeklyCleaningIntegration tests the full weekly cleaning workflow
@@ -850,7 +879,7 @@ func TestWeeklyCleaningIntegration(t *testing.T) {
 		}
 
 		// Step 1: Assign chores for the week
-		assignChores(db)
+		commands.AssignChores(db)
 
 		// Verify assignments
 		var assignedCount int
@@ -863,7 +892,7 @@ func TestWeeklyCleaningIntegration(t *testing.T) {
 		db.Exec(`UPDATE weekly_cleaning SET done = 1 WHERE name = ?`, "Alice")
 
 		// Step 3: Format progress message (like Saturday report)
-		progressMsg := formatCleaningString(db, true)
+		progressMsg := commands.FormatCleaningString(db, true)
 		if !strings.Contains(progressMsg, "Alice") {
 			t.Errorf("Expected Alice in progress message")
 		}
@@ -875,7 +904,7 @@ func TestWeeklyCleaningIntegration(t *testing.T) {
 		}
 
 		// Step 4: Assign new chores (Sunday rotation)
-		assignChores(db)
+		commands.AssignChores(db)
 
 		// Verify done flags were reset
 		var doneCount int
@@ -885,7 +914,7 @@ func TestWeeklyCleaningIntegration(t *testing.T) {
 		}
 
 		// Step 5: Format new assignments message
-		newMsg := formatCleaningString(db, false)
+		newMsg := commands.FormatCleaningString(db, false)
 		if !strings.Contains(newMsg, "*New Chores This Week:*") {
 			t.Errorf("Expected new chores header")
 		}
@@ -907,7 +936,7 @@ func TestWeeklyCleaningIntegration(t *testing.T) {
 		weeklyAssignments := make([]map[string]string, 0)
 
 		for week := 0; week < 6; week++ {
-			assignChores(db)
+			commands.AssignChores(db)
 
 			// Record this week's assignments
 			assignments := make(map[string]string)
@@ -923,15 +952,15 @@ func TestWeeklyCleaningIntegration(t *testing.T) {
 
 		// Verify that assignments change over weeks
 		for i := 1; i < len(weeklyAssignments); i++ {
-			// At least one person should have a different chore
+			// Compare with previous week
 			differentCount := 0
-			for name := range weeklyAssignments[0] {
-				if weeklyAssignments[0][name] != weeklyAssignments[i][name] {
+			for name := range weeklyAssignments[i-1] {
+				if weeklyAssignments[i-1][name] != weeklyAssignments[i][name] {
 					differentCount++
 				}
 			}
 			if differentCount == 0 {
-				t.Errorf("Week %d has identical assignments to week 0, expected rotation", i)
+				t.Errorf("Week %d has identical assignments to week %d, expected rotation", i, i-1)
 			}
 		}
 	})

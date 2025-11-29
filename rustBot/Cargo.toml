@@ -1,5 +1,5 @@
 [package]
-name = "rustWABot"
+name = "rust_shabbot"
 version = "0.1.0"
 edition = "2024"
 
@@ -25,12 +25,12 @@ urlencoding = "2.1"
 uuid = { version = "1.11", features = ["v4"] }
 wacore = "0.1.0"
 waproto = "0.1.0"
-whatsapp-rust = "0.1"
+whatsapp-rust = {git= "https://github.com/jlucaso1/whatsapp-rust"}
 
 [lib]
-name = "rustWABot"
+name = "rust_shabbot"
 path = "lib.rs"
 
 [[bin]]
-name = "rustWABot"
+name = "rust_shabbot"
 path = "main.rs"

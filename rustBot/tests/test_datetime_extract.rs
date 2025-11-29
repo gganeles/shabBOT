@@ -1,12 +1,12 @@
 // Integration test for extract_datetime_from_text utility function
 // Run with: cargo test --test test_datetime_extract
 
-use rustWABot::utils::extract_datetime_from_text;
+use rust_shabbot::utils::extract_datetime_from_text;
 
 #[test]
 fn test_simple_future_time() {
     let input = "remind me tomorrow at 3pm to buy milk";
-    match extract_datetime_from_text(input, None) {
+    match extract_datetime_from_text(input, "Asia/Jerusalem") {
         Ok((remaining, _datetime)) => {
             println!("Remaining text: \"{}\"", remaining);
             assert!(remaining.contains("buy milk") || remaining.contains("remind me"));

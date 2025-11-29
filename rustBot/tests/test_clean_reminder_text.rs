@@ -2,7 +2,7 @@
 // Run with: cargo test --test test_clean_reminder_text
 // Tests match the Go implementation behavior exactly
 
-use rustWABot::utils::clean_reminder_text;
+use rust_shabbot::utils::clean_reminder_text;
 
 #[test]
 fn test_clean_basic() {

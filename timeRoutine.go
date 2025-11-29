@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"shabBOT/commands"
-	"strings"
 	"time"
 
 	"go.mau.fi/whatsmeow"
@@ -43,98 +42,6 @@ func timeRoutine(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
 	}
 }
 
-var weeklyOffset uint8 = 0
-
-var chores []string = []string{"Kitchen", "Living Room", "Trash", "Floors", "Bathrooms", "Balcony"}
-
-func formatCleaningString(db *sql.DB, showProgress bool) string {
-	// Only show cleaners with assigned chores (active this week)
-	rows, err := db.Query(`SELECT name, chore, done FROM weekly_cleaning WHERE chore != '' ORDER BY name`)
-	if err != nil {
-		fmt.Printf("Error querying weekly_cleaning: %v\n", err)
-		return "Error retrieving cleaning data"
-	}
-	defer rows.Close()
-
-	var builder strings.Builder
-	builder.Grow(200)
-
-	if showProgress {
-		builder.WriteString("*Chores Done So Far:*\n")
-	} else {
-		builder.WriteString("*New Chores This Week:*\n")
-	}
-
-	for rows.Next() {
-		var name, chore string
-		var done bool
-		if err := rows.Scan(&name, &chore, &done); err != nil {
-			continue
-		}
-
-		builder.WriteString(fmt.Sprintf("  %s: %s", name, chore))
-
-		if showProgress {
-			if done {
-				builder.WriteString(" ✅")
-			} else {
-				builder.WriteString(" ❌")
-			}
-		}
-		builder.WriteString("\n")
-	}
-
-	return builder.String()
-}
-
-func assignChores(db *sql.DB) {
-	// First, clear all current chore assignments
-	_, err := db.Exec(`UPDATE weekly_cleaning SET chore = '', done = 0`)
-	if err != nil {
-		fmt.Printf("Error clearing chore assignments: %v\n", err)
-		return
-	}
-
-	// Get all cleaners
-	rows, err := db.Query(`SELECT name FROM weekly_cleaning ORDER BY name`)
-	if err != nil {
-		fmt.Printf("Error querying cleaners: %v\n", err)
-		return
-	}
-	defer rows.Close()
-
-	var allCleaners []string
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			continue
-		}
-		allCleaners = append(allCleaners, name)
-	}
-	rows.Close()
-
-	// Rotate the weekly offset to determine which cleaners are active
-	weeklyOffset = (weeklyOffset + 1) % uint8(len(allCleaners))
-
-	// Select cleaners for this week (rotate through the list)
-	numChores := len(chores)
-	if numChores > len(allCleaners) {
-		numChores = len(allCleaners)
-	}
-
-	// Assign chores to the selected cleaners
-	for i := 0; i < numChores; i++ {
-		cleanerIndex := (int(weeklyOffset) + i) % len(allCleaners)
-		cleaner := allCleaners[cleanerIndex]
-		chore := chores[i]
-
-		_, err := db.Exec(`UPDATE weekly_cleaning SET chore = ?, done = 0 WHERE name = ?`, chore, cleaner)
-		if err != nil {
-			fmt.Printf("Error assigning chore to %s: %v\n", cleaner, err)
-		}
-	}
-}
-
 func weeklyCleaning(client *whatsmeow.Client, ctx context.Context, db *sql.DB) {
 	haifa, _ := time.LoadLocation("Asia/Jerusalem")
 	now := time.Now().In(haifa)
@@ -152,7 +59,7 @@ func weeklyCleaning(client *whatsmeow.Client, ctx context.Context, db *sql.DB) {
 
 	// Saturday night at 20:00 - Send progress report
 	if now.Weekday() == time.Saturday && hour == 20 && minute == 0 && seconds < 5 {
-		messageText := formatCleaningString(db, true)
+		messageText := commands.FormatCleaningString(db, true)
 		_, err = client.SendMessage(ctx, jid, &waE2E.Message{
 			Conversation: &messageText,
 		})
@@ -166,10 +73,10 @@ func weeklyCleaning(client *whatsmeow.Client, ctx context.Context, db *sql.DB) {
 	// Sunday at 9:00 - Assign new chores and send announcement
 	if now.Weekday() == time.Sunday && hour == 9 && minute == 0 && seconds < 5 {
 		// Assign new chores
-		assignChores(db)
+		commands.AssignChores(db)
 
 		// Send new assignments
-		messageText := formatCleaningString(db, false)
+		messageText := commands.FormatCleaningString(db, false)
 		_, err = client.SendMessage(ctx, jid, &waE2E.Message{
 			Conversation: &messageText,
 		})
