@@ -576,7 +576,8 @@ func TestFormatCleaningString(t *testing.T) {
 			name VARCHAR NOT NULL,
 			number VARCHAR NOT NULL,
 			chore VARCHAR DEFAULT '',
-			done BOOLEAN DEFAULT FALSE
+			done BOOLEAN DEFAULT FALSE,
+			up BOOLEAN DEFAULT TRUE
 		)
 	`)
 	if err != nil {
@@ -592,10 +593,10 @@ func TestFormatCleaningString(t *testing.T) {
 
 	t.Run("ShowNewChores", func(t *testing.T) {
 		// Insert test data
-		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-			"Alice", "1234", "Kitchen", false)
-		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-			"Bob", "5678", "Trash", true)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Alice", "1234", "Kitchen", false, true)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Bob", "5678", "Trash", true, true)
 
 		result := commands.FormatCleaningString(db, false)
 
@@ -619,10 +620,10 @@ func TestFormatCleaningString(t *testing.T) {
 
 	t.Run("ShowProgress", func(t *testing.T) {
 		// Insert test data
-		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-			"Charlie", "9999", "Floors", true)
-		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-			"David", "8888", "Bathrooms", false)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Charlie", "9999", "Floors", true, true)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"David", "8888", "Bathrooms", false, true)
 
 		result := commands.FormatCleaningString(db, true)
 
@@ -655,7 +656,8 @@ func TestAssignChores(t *testing.T) {
 			name VARCHAR NOT NULL,
 			number VARCHAR NOT NULL,
 			chore VARCHAR DEFAULT '',
-			done BOOLEAN DEFAULT FALSE
+			done BOOLEAN DEFAULT FALSE,
+			up BOOLEAN DEFAULT TRUE
 		)
 	`)
 	if err != nil {
@@ -666,8 +668,8 @@ func TestAssignChores(t *testing.T) {
 		// Insert cleaners
 		cleaners := []string{"Alice", "Bob", "Charlie"}
 		for i, name := range cleaners {
-			db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-				name, fmt.Sprintf("%d", i), "", false)
+			db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+				name, fmt.Sprintf("%d", i), "", false, true)
 		}
 
 		// Call assignChores
@@ -709,10 +711,15 @@ func TestAssignChores(t *testing.T) {
 
 	t.Run("ChoresRotateWeekly", func(t *testing.T) {
 		// Insert cleaners
-		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-			"Alice", "1", "Kitchen", false)
-		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-			"Bob", "2", "Living Room", false)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Alice", "1", "Kitchen", false, true)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Bob", "2", "Living Room", false, true)
+		// Add downstairs cleaners to prevent panic when offset rotates
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Charlie", "3", "Floors", false, false)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"David", "4", "Bathrooms", false, false)
 
 		// Get initial assignment
 		var initialChore string
@@ -760,7 +767,8 @@ func TestHandleCleaningCommand(t *testing.T) {
 			name VARCHAR NOT NULL,
 			number VARCHAR NOT NULL,
 			chore VARCHAR DEFAULT '',
-			done BOOLEAN DEFAULT FALSE
+			done BOOLEAN DEFAULT FALSE,
+			up BOOLEAN DEFAULT TRUE
 		)
 	`)
 	if err != nil {
@@ -783,8 +791,8 @@ func TestHandleCleaningCommand(t *testing.T) {
 
 	t.Run("UserNotRegistered", func(t *testing.T) {
 		// Insert a cleaner
-		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-			"Alice", "1234", "Kitchen", false)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Alice", "1234", "Kitchen", false, true)
 
 		// This test requires importing the commands package
 		// result := commands.HandleCleaningCommand(db, validChatID, "9999", "status")
@@ -798,8 +806,8 @@ func TestHandleCleaningCommand(t *testing.T) {
 	t.Run("MarkChoreDone", func(t *testing.T) {
 		// Insert a cleaner
 		db.Exec(`DELETE FROM weekly_cleaning`)
-		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-			"Bob", "5678", "Trash", false)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Bob", "5678", "Trash", false, true)
 
 		// This would test marking as done
 		// result := commands.HandleCleaningCommand(db, validChatID, "5678", "done")
@@ -820,10 +828,13 @@ func TestHandleCleaningCommand(t *testing.T) {
 	t.Run("RedoCommand", func(t *testing.T) {
 		// Insert cleaners
 		db.Exec(`DELETE FROM weekly_cleaning`)
-		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-			"Alice", "1234", "Kitchen", false)
-		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-			"Bob", "5678", "Living Room", false)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Alice", "1234", "Kitchen", false, true)
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Bob", "5678", "Living Room", false, true)
+		// Add downstairs cleaners to prevent panic
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"Charlie", "3", "Floors", false, false)
 
 		// Sender must be the authorized number
 		sender := "972587120601"
@@ -858,7 +869,8 @@ func TestWeeklyCleaningIntegration(t *testing.T) {
 			name VARCHAR NOT NULL,
 			number VARCHAR NOT NULL,
 			chore VARCHAR DEFAULT '',
-			done BOOLEAN DEFAULT FALSE
+			done BOOLEAN DEFAULT FALSE,
+			up BOOLEAN DEFAULT TRUE
 		)
 	`)
 	if err != nil {
@@ -874,9 +886,13 @@ func TestWeeklyCleaningIntegration(t *testing.T) {
 		}
 
 		for name, number := range cleaners {
-			db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-				name, number, "", false)
+			db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+				name, number, "", false, true)
 		}
+
+		// Add dummy downstairs cleaners to prevent panic on rotation
+		db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+			"DummyDown", "9999", "", false, false)
 
 		// Step 1: Assign chores for the week
 		commands.AssignChores(db)
@@ -928,8 +944,9 @@ func TestWeeklyCleaningIntegration(t *testing.T) {
 		db.Exec(`DELETE FROM weekly_cleaning`)
 		cleaners := []string{"Alice", "Bob", "Charlie", "David", "Eve"}
 		for i, name := range cleaners {
-			db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done) VALUES (?, ?, ?, ?)`,
-				name, fmt.Sprintf("%d", i), "", false)
+			up := i%2 == 0
+			db.Exec(`INSERT INTO weekly_cleaning (name, number, chore, done, up) VALUES (?, ?, ?, ?, ?)`,
+				name, fmt.Sprintf("%d", i), "", false, up)
 		}
 
 		// Track assignments over multiple weeks

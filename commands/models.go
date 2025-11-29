@@ -99,7 +99,8 @@ func InitDB(db *sql.DB) error {
 		number VARCHAR PRIMARY KEY,
 		name VARCHAR NOT NULL,
 		chore VARCHAR DEFAULT '',
-		done BOOLEAN DEFAULT FALSE
+		done BOOLEAN DEFAULT FALSE,
+		up BOOLEAN DEFAULT TRUE
 	);
 	`
 
@@ -107,6 +108,8 @@ func InitDB(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
+
+	db.Exec(`ALTER TABLE weekly_cleaning ADD COLUMN up BOOLEAN DEFAULT TRUE`)
 
 	// Migration: Remove duplicate cleaners from weekly_cleaning table
 	// This handles existing databases that have duplicates from before the PRIMARY KEY was added
@@ -124,21 +127,24 @@ func InitDB(db *sql.DB) error {
 		// Don't return error, just log it - this is a non-critical migration
 	}
 
-	cleaners := map[string]string{
-		"972542254475": "Lidor",
-		"972524673512": "Jeremy",
-		"972587920084": "Liron",
-		"972587120601": "Gabe",
-		"972586350530": "Nico",
-		"972586251000": "Luke",
+	cleaners := map[string][]string{
+		"972542254475": {"Lidor", "up"},
+		"972524673512": {"Jeremy", "down"},
+		"972587920084": {"Liron", "up"},
+		"972587120601": {"Gabe", "up"},
+		"972586350530": {"Nico", "down"},
+		"972586251000": {"Luke", "down"},
 	}
 
 	for dude := range cleaners {
-		db.Exec(`
-			INSERT OR IGNORE INTO weekly_cleaning (number, name, chore, done)
-		 	VALUES (?,?,?,?)
+		_, err = db.Exec(`
+			INSERT OR IGNORE INTO weekly_cleaning (number, name, chore, done, up)
+		 	VALUES (?,?,?,?,?)
 			`,
-			dude, cleaners[dude], "", false)
+			dude, cleaners[dude][0], "", false, cleaners[dude][1] == "up")
+		if err != nil {
+			log.Printf("Warning: Failed to insert cleaner %s: %v", cleaners[dude][0], err)
+		}
 	}
 
 	// Migration: Add sent_time column if it doesn't exist

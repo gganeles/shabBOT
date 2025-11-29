@@ -58,8 +58,12 @@ func AssignChores(db *sql.DB) {
 		return
 	}
 
-	// Get all cleaners
-	rows, err := db.Query(`SELECT name FROM weekly_cleaning ORDER BY name`)
+	// Determine if upstirs or downstairs week
+
+	upstairsWeek := WeeklyOffset%2 == 0
+
+	// Get cleaners
+	rows, err := db.Query(`SELECT name FROM weekly_cleaning WHERE up = ? ORDER BY name`, upstairsWeek)
 	if err != nil {
 		fmt.Printf("Error querying cleaners: %v\n", err)
 		return
