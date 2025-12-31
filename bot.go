@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/mdp/qrterminal/v3"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
@@ -74,16 +75,15 @@ func main() {
 		}
 
 		// Start a goroutine to print QR events so we still see them if pairing by phone is not used
-		go func() {
-			for evt := range qrChan {
-				if evt.Event == "code" {
-					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-					fmt.Println("QR code:", evt.Code)
-				} else {
-					fmt.Println("Login event:", evt.Event)
-				}
+
+		for evt := range qrChan {
+			if evt.Event == "code" {
+				qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
+				fmt.Println("QR code:", evt.Code)
+			} else {
+				fmt.Println("Login event:", evt.Event)
 			}
-		}()
+		}
 
 		// If PAIR_PHONE env var is set, try code-based pairing
 		phone := os.Getenv("PAIR_PHONE")
