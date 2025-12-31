@@ -127,6 +127,11 @@ func InitDB(db *sql.DB) error {
 		// Don't return error, just log it - this is a non-critical migration
 	}
 
+	_, err = db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_cleaning_number ON weekly_cleaning(number)`)
+	if err != nil {
+		log.Printf("Warning: Failed to create unique index on weekly_cleaning: %v", err)
+	}
+
 	cleaners := map[string][]string{
 		"972542254475": {"Lidor", "up"},
 		"972524673512": {"Jeremy", "down"},
