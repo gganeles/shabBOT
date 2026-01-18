@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var WeeklyOffset uint8 = 0
+var WeeklyOffset int = 0
 
 var Chores []string = []string{"Kitchen", "Living Room and Trash", "Floors"}
 
@@ -81,7 +81,8 @@ func AssignChores(db *sql.DB) {
 	rows.Close()
 
 	// Rotate the weekly offset to determine which cleaners are active
-	WeeklyOffset = (WeeklyOffset + 1) % uint8(len(allCleaners))
+	fmt.Printf("Assigning chores for week with offset %d (upstairsWeek=%v), and the length of the cleaner list is %d\n", WeeklyOffset, upstairsWeek, len(allCleaners))
+	WeeklyOffset = (WeeklyOffset + 1) % 6
 
 	// Select cleaners for this week (rotate through the list)
 	numChores := len(Chores)
@@ -91,7 +92,7 @@ func AssignChores(db *sql.DB) {
 
 	// Assign chores to the selected cleaners
 	for i := 0; i < numChores; i++ {
-		cleanerIndex := (int(WeeklyOffset) + i) % len(allCleaners)
+		cleanerIndex := (WeeklyOffset + i) % len(allCleaners)
 		cleaner := allCleaners[cleanerIndex]
 		chore := Chores[i]
 
