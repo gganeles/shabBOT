@@ -75,15 +75,16 @@ func main() {
 		}
 
 		// Start a goroutine to print QR events so we still see them if pairing by phone is not used
-
-		for evt := range qrChan {
-			if evt.Event == "code" {
-				qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-				fmt.Println("QR code:", evt.Code)
-			} else {
-				fmt.Println("Login event:", evt.Event)
+		go func() {
+			for evt := range qrChan {
+				if evt.Event == "code" {
+					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
+					fmt.Println("QR code:", evt.Code)
+				} else {
+					fmt.Println("Login event:", evt.Event)
+				}
 			}
-		}
+		}()
 
 		// If PAIR_PHONE env var is set, try code-based pairing
 		phone := os.Getenv("PAIR_PHONE")
