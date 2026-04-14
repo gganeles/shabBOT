@@ -24,44 +24,50 @@ func RemindCmd(db *sql.DB, prompt, chatID string, timezone *time.Location) strin
 	}
 
 	// Remove the command word
-	reminderText := strings.Join(args[1:], " ")
+	reminderCMDText := strings.Join(args[1:], " ")
 
 	// Ensure chat exists
 	GetOrCreateChat(db, chatID)
 
-	// Parse time
-	targetTime, message, err := parseReminderTime(reminderText, timezone)
-	if err != nil {
-		// If parsing fails, create as untimed
-		message = cleanReminderText(reminderText)
-		id := generateUUID()
+	var response []string
 
-		_, err := db.Exec(`
-			INSERT INTO reminders (id, chat_id, message, time, type, snoozable) 
-			VALUES (?, ?, ?, 0, 'timeless', 0)
-		`, id, chatID, message)
-
+	for reminderText := range strings.SplitSeq(reminderCMDText, ",") {
+		// Parse time
+		targetTime, message, err := parseReminderTime(reminderText, timezone)
 		if err != nil {
-			return fmt.Sprintf("Error creating reminder: %v", err)
+			// If parsing fails, create as untimed
+			message = cleanReminderText(reminderText)
+			id := generateUUID()
+
+			_, err := db.Exec(`
+				INSERT INTO reminders (id, chat_id, message, time, type, snoozable) 
+				VALUES (?, ?, ?, 0, 'timeless', 0)
+			`, id, chatID, message)
+
+			if err != nil {
+				response = append(response, fmt.Sprintf("Error creating reminder: %v", err))
+			} else {
+				response = append(response, fmt.Sprintf(`Ok, "%s" will be added to your reminders`, message))
+			}
+			continue
 		}
 
-		return fmt.Sprintf(`Ok, "%s" will be added to your reminders`, message)
+		// Create timed reminder
+		id := generateUUID()
+		_, err = db.Exec(`
+			INSERT INTO reminders (id, chat_id, message, time, type, snoozable) 
+			VALUES (?, ?, ?, ?, 'remind', 0)
+		`, id, chatID, message, targetTime.Unix())
+
+		if err != nil {
+			response = append(response, fmt.Sprintf("Error creating reminder: %v", err))
+		} else {
+			response = append(response, fmt.Sprintf(`Ok, I'll remind you "%s" on %s`,
+				message,
+				targetTime.Format("Mon @ 3:04 PM")))
+		}
 	}
-
-	// Create timed reminder
-	id := generateUUID()
-	_, err = db.Exec(`
-		INSERT INTO reminders (id, chat_id, message, time, type, snoozable) 
-		VALUES (?, ?, ?, ?, 'remind', 0)
-	`, id, chatID, message, targetTime.Unix())
-
-	if err != nil {
-		return fmt.Sprintf("Error creating reminder: %v", err)
-	}
-
-	return fmt.Sprintf(`Ok, I'll remind you "%s" on %s`,
-		message,
-		targetTime.Format("Mon @ 3:04 PM"))
+	return strings.Join(response, "\n")
 }
 
 // RemindersCmd lists all active reminders
