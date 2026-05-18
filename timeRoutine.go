@@ -28,6 +28,8 @@ func timeRoutine(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
+	time_provider := RealTimeProvider{}
+
 	for range ticker.C {
 		// Check for reminders that need to be sent
 		checkAndSendReminders(client, db, ctx)
@@ -36,9 +38,70 @@ func timeRoutine(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
 		// Example scheduled message at 18:19:00
 		eighteenNineteen(client, ctx)
 
-		checkAndSendExerciseResultsWithTime(client, db, ctx, RealTimeProvider{})
+		checkAndSendExerciseResultsWithTime(client, db, ctx, time_provider)
 
 		weeklyCleaning(client, ctx, db)
+
+		checkAndSendTodos(client, ctx, db, time_provider)
+	}
+}
+
+func checkAndSendTodos(client *whatsmeow.Client, ctx context.Context, db *sql.DB, timeProvider TimeProvider) {
+	now := timeProvider.Now()
+
+	jid_str := "9204232364276@lid"
+
+	rows, err := db.Query(`SELECT timezone FROM chats WHERE chat_id = ?`, jid_str)
+	if err != nil {
+		fmt.Printf("Error querying timezone for chat %s: %v\n", jid_str, err)
+		return
+	}
+	defer rows.Close()
+
+	var timezone string
+	if rows.Next() {
+		rows.Scan(&timezone)
+	} else {
+		fmt.Printf("No timezone found for chat %s\n", jid_str)
+		return
+	}
+
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		fmt.Printf("Error loading location for timezone %s: %v\n", timezone, err)
+		return
+	}
+
+	now = now.In(loc)
+
+	if !((now.Hour() == 9 ||
+		now.Hour() == 12 ||
+		now.Hour() == 15 ||
+		now.Hour() == 18 ||
+		now.Hour() == 21 ||
+		now.Hour() == 24) &&
+		now.Minute() == 0 &&
+		now.Second() < 5) {
+		return
+	}
+
+	message := commands.RemindersCmd(db, jid_str, loc)
+
+	// Send the message to the group chat
+	jid, err := types.ParseJID(jid_str)
+	if err != nil {
+		fmt.Printf("Error parsing chat ID: %v\n", err)
+		return
+	}
+
+	_, err = client.SendMessage(ctx, jid, &waE2E.Message{
+		Conversation: &message,
+	})
+
+	if err != nil {
+		fmt.Printf("Error sending to-do list: %v\n", err)
+	} else {
+		fmt.Printf("Sent to-do list at %s\n", now.Format("2006-01-02 15:04:05"))
 	}
 }
 

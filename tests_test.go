@@ -982,3 +982,28 @@ func TestWeeklyCleaningIntegration(t *testing.T) {
 		}
 	})
 }
+
+func TestReminderChime(t *testing.T) {
+	// This test would verify that the reminder chime function behaves correctly
+	// However, since it relies on time and external services, we would need to mock those dependencies
+	// For now, we can just ensure that the function can be called without error
+
+	db, err := sql.Open("sqlite3", ":memory:")
+
+	if err != nil {
+		t.Fatalf("Failed to create in-memory database: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+
+	timeProvider := MockTimeProvider{CurrentTime: time.Now()}
+
+	// Ensure calling checkAndSendTodos doesn't panic when DB is empty
+	checkAndSendTodos(nil, ctx, db, timeProvider)
+
+	// Also call with a basic chats table present
+	db.Exec(`CREATE TABLE IF NOT EXISTS chats (chat_id TEXT PRIMARY KEY, timezone TEXT NOT NULL DEFAULT 'Asia/Jerusalem')`)
+	db.Exec(`INSERT OR IGNORE INTO chats (chat_id, timezone) VALUES (?, ?)`, "9204232364276@lid", "Asia/Jerusalem")
+	checkAndSendTodos(nil, ctx, db, timeProvider)
+}
