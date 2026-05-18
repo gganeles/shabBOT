@@ -29,7 +29,7 @@ func timeRoutine(client *whatsmeow.Client, db *sql.DB, ctx context.Context) {
 	defer ticker.Stop()
 
 	time_provider := RealTimeProvider{}
-
+	fmt.Println("Time routine started")
 	for range ticker.C {
 		// Check for reminders that need to be sent
 		checkAndSendReminders(client, db, ctx)
@@ -68,6 +68,7 @@ func checkAndSendTodos(client *whatsmeow.Client, ctx context.Context, db *sql.DB
 		fmt.Printf("No timezone found for chat %s\n", jid_str)
 		return
 	}
+	rows.Close()
 
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
@@ -77,16 +78,16 @@ func checkAndSendTodos(client *whatsmeow.Client, ctx context.Context, db *sql.DB
 
 	now = now.In(loc)
 
-	// if !((now.Hour() == 9 ||
-	// 	now.Hour() == 12 ||
-	// 	now.Hour() == 15 ||
-	// 	now.Hour() == 18 ||
-	// 	now.Hour() == 21 ||
-	// 	now.Hour() == 0) &&
-	// 	now.Minute() == 0 &&
-	// 	now.Second() < 5) {
-	// 	return
-	// }
+	if !((now.Hour() == 9 ||
+		now.Hour() == 12 ||
+		now.Hour() == 15 ||
+		now.Hour() == 18 ||
+		now.Hour() == 21 ||
+		now.Hour() == 0) &&
+		now.Minute() == 0 &&
+		now.Second() < 5) {
+		return
+	}
 
 	message := commands.RemindersCmd(db, jid_str, loc)
 	// Send the message to the group chat
