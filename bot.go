@@ -74,12 +74,19 @@ func main() {
 			panic(err)
 		}
 
-		// Start a goroutine to print QR events so we still see them if pairing by phone is not used
+		// PAIR_PHONE (international format, e.g. 15551234567) switches to code-based pairing.
+		// The QR channel still has to be drained: whatsmeow closes the login websocket once
+		// the QR codes run out (qrchan.go), which would end the pairing window early.
+		phone := os.Getenv("PAIR_PHONE")
+
+		// Start a goroutine to drain QR events; the QR itself is only rendered when not pairing by code.
 		go func() {
 			for evt := range qrChan {
 				if evt.Event == "code" {
-					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-					fmt.Println("QR code:", evt.Code)
+					if phone == "" {
+						qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
+						fmt.Println("QR code:", evt.Code)
+					}
 				} else {
 					fmt.Println("Login event:", evt.Event)
 				}
@@ -87,13 +94,14 @@ func main() {
 		}()
 
 		// If PAIR_PHONE env var is set, try code-based pairing
-		phone := os.Getenv("PAIR_PHONE")
 		if phone != "" {
-			// Wait briefly to ensure the websocket and server state are ready.
+			// Wait briefly to ensure the websocket and server state is ready.
 			// The docs recommend waiting for the first QR event; sleeping a second is usually enough.
 			time.Sleep(2 * time.Second)
+			// The code is only valid while QR codes are still being emitted (~160s): whatsmeow
+			// disconnects the login websocket once they run out, so enter it on the phone promptly.
 			// Use a generic browser-like client display name. PairClientType can be left to PairClientOtherWebClient constant via 0..n mapping; here we pass PairClientOtherWebClient by value from whatsmeow
-			code, err := client.PairPhone(context.Background(), "12038025238", true, whatsmeow.PairClientOtherWebClient, "Chrome (Linux)")
+			code, err := client.PairPhone(context.Background(), phone, true, whatsmeow.PairClientOtherWebClient, "Chrome (Linux)")
 			if err != nil {
 				fmt.Println("PairPhone error:", err)
 			} else {
